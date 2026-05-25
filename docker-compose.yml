@@ -1,0 +1,34 @@
+services:
+  discord-bot:
+    build: ./bot-source
+    container_name: discord_bot
+    restart: unless-stopped
+    # This pulls all variables from your .env file into the container
+    env_file:
+      - .env
+    # You can still define non-secret container variables here
+    environment:
+      - LAVALINK_HOST=lavalink
+      - LAVALINK_PORT=2333
+      - LAVALINK_PASSWORD=youshallnotpass
+    depends_on:
+      - lavalink
+    networks:
+      - internal_network
+
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4
+    container_name: lavalink
+    restart: unless-stopped
+    ports:
+      - 2333:2333
+    environment:
+      - _JAVA_OPTIONS=-Xmx2G 
+    volumes:
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml
+    networks:
+      - internal_network
+
+networks:
+  internal_network:
+    driver: bridge
