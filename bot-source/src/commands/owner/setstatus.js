@@ -14,6 +14,8 @@ module.exports = {
                     { name: '請勿打擾 (Do Not Disturb)', value: 'dnd' },
                     { name: '隱身 (Invisible)', value: 'invisible' }
                 )),
+    category: 'owner',
+    helpText: '🔹 `/setstatus [狀態]` - 切換機器人的線上狀態（僅限擁有者）',
     async execute(interaction, bot) {
         const ownerId = process.env.OWNER_ID;
         if (!ownerId || interaction.user.id !== ownerId) {

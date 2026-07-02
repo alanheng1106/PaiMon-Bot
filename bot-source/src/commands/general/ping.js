@@ -4,6 +4,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('ping')
         .setDescription('檢查核心系統延遲'),
+    category: 'general',
+    helpText: '🔹 `/ping` - 查看機器人目前的 WebSocket 與回應延遲',
     async execute(interaction, bot) {
         const { EmbedBuilder } = require('discord.js');
         const { Colors } = require('../../config');

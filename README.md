@@ -5,8 +5,10 @@ PaiMon-Bot is a Discord bot built with `discord.js` and Lavalink-powered music p
 ## Features
 
 - Discord slash commands for admin tools, general utilities, and music
-- Lavalink music playback with queue, pause, resume, skip, stop, volume, and now playing commands
+- Lavalink music playback with queue, loop, shuffle, pause, resume, skip, stop, volume, and now playing commands
 - Text-to-speech (TTS) powered by Google TTS, with intelligent queue interruption
+- Per-user command cooldown system to prevent spam
+- Guild settings persistence (volume survives restarts)
 - Docker Compose setup for running the bot and Lavalink together
 
 ## Requirements
@@ -100,6 +102,8 @@ Music:
 - `/resume`
 - `/skip`
 - `/stop`
+- `/loop`
+- `/shuffle`
 - `/queue`
 - `/nowplaying`
 - `/volume`
@@ -115,6 +119,7 @@ Music:
 │   └── src/
 │       ├── commands/
 │       ├── core/
+│       ├── data/          ← guild-settings.json (auto-created)
 │       └── events/
 ├── lavalink/
 │   └── application.yml
@@ -130,3 +135,4 @@ Music:
 - Set `OWNER_ID` in `.env` to your Discord user ID. Owner commands (`/setgame`, `/setstatus`, `/shutdown`, `/restart`) are restricted to this user regardless of server permissions.
 - Lavalink uses `youshallnotpass` as the default password in this setup. **Change it** in both `.env` and `lavalink/application.yml` before deploying.
 - Lavalink is not exposed on the host network by default; it communicates with the bot through the internal Docker network only.
+- Guild settings (e.g. volume) are persisted in `bot-source/data/guild-settings.json` and survive bot restarts.

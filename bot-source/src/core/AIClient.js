@@ -117,7 +117,8 @@ class AIClient {
     }
 
     addPassiveContext(channelId, userName, text) {
-        if (!text || text.trim() === '') return;
+        // Ignore empty or very short messages (emoji reactions, single words) — they add noise without value
+        if (!text || text.trim().length < 5) return;
 
         let history = this._ensureSession(channelId);
 

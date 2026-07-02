@@ -5,6 +5,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('queue')
         .setDescription('查看當前播放列表'),
+    category: 'music',
+    helpText: '🔹 `/queue` - 顯示目前播放佇列（最多顯示 10 首）與紽計資訊',
     async execute(interaction, bot) {
         const queue = bot.music.getQueue(interaction.guild.id);
         if (!queue || !queue.songs.length) return bot.sendError(interaction, '佇列為空', '當前沒有任何歌曲在播放');

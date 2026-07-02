@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const AIClient = require('./AIClient');
 const MusicManager = require('./MusicManager');
+const CooldownManager = require('./CooldownManager');
+const GuildSettings = require('./GuildSettings');
 
 class BotClient extends Client {
     constructor() {
@@ -23,6 +25,8 @@ class BotClient extends Client {
         this.commands = new Collection();
         this.ai = new AIClient();
         this.music = new MusicManager(this);
+        this.cooldowns = new CooldownManager();
+        this.settings = new GuildSettings();
     }
 
     /**

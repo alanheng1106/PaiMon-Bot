@@ -12,6 +12,9 @@ module.exports = {
             option.setName('reason')
                 .setDescription('封鎖原因'))
         .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
+    category: 'admin',
+    cooldown: 5,
+    helpText: '🔹 `/ban [成員] [原因]` - 封鎖並踢出指定成員，執行前會 DM 通知對方',
     async execute(interaction, bot) {
         const user = interaction.options.getUser('user');
         const reason = interaction.options.getString('reason') || '未提供原因';
@@ -41,12 +44,17 @@ module.exports = {
             }
         }
 
+        // 3. DM the target before banning (best effort)
+        if (member) {
+            await user.send(`⚠️ 你已被 **${interaction.guild.name}** 封鎖。\n📋 原因：\`${reason}\``).catch(() => {});
+        }
+
         try {
             await interaction.guild.members.ban(user, { reason: `By ${interaction.user.tag}: ${reason}` });
             await bot.sendSuccess(interaction, '🔨 封鎖成功', `✅ 已成功封鎖 **${user.tag}**\n原因: \`${reason}\``);
         } catch (err) {
             console.error('[Ban CMD]', err);
-            bot.sendError(interaction, '執行失敗', `封鎖過程中發生錯誤：\`${err.message}\``);
+            bot.sendError(interaction, '執行失敗', '封鎖過程中發生內部錯誤，請稍後再試。');
         }
     },
 };

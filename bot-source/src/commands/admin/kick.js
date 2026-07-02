@@ -12,6 +12,9 @@ module.exports = {
             option.setName('reason')
                 .setDescription('踢出原因'))
         .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
+    category: 'admin',
+    cooldown: 5,
+    helpText: '🔹 `/kick [成員] [原因]` - 將指定成員踢出伺服器，執行前會 DM 通知對方',
     async execute(interaction, bot) {
         const user = interaction.options.getUser('user');
         const reason = interaction.options.getString('reason') || '未提供原因';
@@ -42,12 +45,15 @@ module.exports = {
             return bot.sendError(interaction, '權限溢位', `我無法踢出此成員! 請確保我的身分組在伺服器設定中高於 **${user.tag}**`);
         }
 
+        // 4. DM the target before kicking (best effort)
+        await user.send(`⚠️ 你已被 **${interaction.guild.name}** 踢出。\n📋 原因：\`${reason}\``).catch(() => {});
+
         try {
             await member.kick(`By ${interaction.user.tag}: ${reason}`);
             await bot.sendSuccess(interaction, '👟 踢出成功', `✅ 已成功踢出 **${user.tag}**\n原因: \`${reason}\``);
         } catch (err) {
             console.error('[Kick CMD]', err);
-            bot.sendError(interaction, '執行失敗', `踢出過程中發生錯誤：\`${err.message}\``);
+            bot.sendError(interaction, '執行失敗', '踢出過程中發生內部錯誤，請稍後再試。');
         }
     },
 };

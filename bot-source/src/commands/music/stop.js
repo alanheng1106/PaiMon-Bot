@@ -5,6 +5,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('stop')
         .setDescription('停止播放並清空佇列'),
+    category: 'music',
+    helpText: '🔹 `/stop` - 停止播放並清空所有佇列中的歌曲（同時重置循環模式）',
     async execute(interaction, bot) {
         const voiceChannel = interaction.member?.voice?.channel;
         if (!voiceChannel) return bot.sendError(interaction, '語音連線遭拒', '你必須先加入一個語音頻道!');

@@ -4,6 +4,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('shutdown')
         .setDescription('關機機器人 (僅限擁有者)'),
+    category: 'owner',
+    helpText: '🔹 `/shutdown` - 安全關機機器人進程（僅限 OWNER_ID 指定的擁有者）',
     async execute(interaction, bot) {
         const ownerId = process.env.OWNER_ID;
         if (!ownerId || interaction.user.id !== ownerId) {

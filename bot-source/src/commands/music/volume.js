@@ -12,6 +12,8 @@ module.exports = {
                 .setMinValue(1)
                 .setMaxValue(100)
         ),
+    category: 'music',
+    helpText: '🔹 `/volume [1-100]` - 調整音樂播放音量，設定值會在下次啟動時自動恢復',
     async execute(interaction, bot) {
         const voiceChannel = interaction.member?.voice?.channel;
         if (!voiceChannel) return bot.sendError(interaction, '語音連線遭拒', '你必須先加入一個語音頻道!');
@@ -28,6 +30,9 @@ module.exports = {
 
         const volume = interaction.options.getInteger('level');
         bot.music.setVolume(interaction.guild.id, volume);
+
+        // Persist volume setting for this guild
+        bot.settings.set(interaction.guild.id, 'volume', volume);
 
         const embed = new EmbedBuilder()
             .setColor(Colors.Primary)

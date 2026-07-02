@@ -4,6 +4,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('join')
         .setDescription('讓機器人加入你所在的語音頻道'),
+    category: 'music',
+    helpText: '🔹 `/join` - 召喚機器人加入你目前所在的語音頻道',
     async execute(interaction, bot) {
         const voiceChannel = interaction.member?.voice?.channel;
 
@@ -27,7 +29,7 @@ module.exports = {
             await bot.sendSuccess(interaction, '🔊 成功加入', `已成功加入語音頻道: <#${voiceChannel.id}>`);
         } catch (err) {
             console.error('[Join CMD]', err);
-            bot.sendError(interaction, '加入失敗', `發生錯誤: \`${err.message}\``);
+            bot.sendError(interaction, '加入失敗', '加入語音頻道時發生內部錯誤，請稍後再試。');
         }
     },
 };

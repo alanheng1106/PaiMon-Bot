@@ -13,6 +13,8 @@ module.exports = {
                 .setDescription('新暱稱')
                 .setRequired(true))
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageNicknames),
+    category: 'admin',
+    helpText: '🔹 `/rename [成員] [新暱稱]` - 變更指定成員的伺服器暱稱',
     async execute(interaction, bot) {
         const user = interaction.options.getUser('user');
         const nickname = interaction.options.getString('nickname');
@@ -57,7 +59,7 @@ module.exports = {
             await bot.sendSuccess(interaction, '📝 暱稱變更成功', `✅ 已將 **${user.tag}** 的暱稱從 \`${oldNickname}\` 更改為 \`${nickname}\``);
         } catch (err) {
             console.error('[Rename CMD]', err);
-            bot.sendError(interaction, '執行失敗', `更改暱稱過程中發生錯誤：\`${err.message}\``);
+            bot.sendError(interaction, '執行失敗', '更改暱稱時發生內部錯誤，請稍後再試。');
         }
     },
 };

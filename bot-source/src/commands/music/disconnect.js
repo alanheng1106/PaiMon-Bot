@@ -4,6 +4,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('disconnect')
         .setDescription('中斷語音連線並清空佇列'),
+    category: 'music',
+    helpText: '🔹 `/disconnect` - 讓機器人離開語音頻道並清空播放佇列',
     async execute(interaction, bot) {
         const voiceChannel = interaction.member?.voice?.channel;
         const botVoiceChannel = interaction.guild.members.me.voice.channel;
@@ -22,7 +24,7 @@ module.exports = {
             await bot.sendSuccess(interaction, '🔇 斷開連線', '已成功離開語音頻道');
         } catch (err) {
             console.error('[Disconnect CMD]', err);
-            bot.sendError(interaction, '斷開失敗', `發生錯誤：\`${err.message}\``);
+            bot.sendError(interaction, '斷開失敗', '發生內部錯誤，請稍後再試。');
         }
     },
 };

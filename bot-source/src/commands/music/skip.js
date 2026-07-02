@@ -4,6 +4,9 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('skip')
         .setDescription('跳過當前歌曲'),
+    category: 'music',
+    cooldown: 2,
+    helpText: '🔹 `/skip` - 跳過目前正在播放的歌曲',
     async execute(interaction, bot) {
         const voiceChannel = interaction.member?.voice?.channel;
         if (!voiceChannel) return bot.sendError(interaction, '語音連線遭拒', '你必須先加入一個語音頻道!');

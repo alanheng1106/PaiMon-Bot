@@ -5,6 +5,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('nowplaying')
         .setDescription('顯示當前正在播放的歌曲'),
+    category: 'music',
+    helpText: '🔹 `/nowplaying` - 查看目前正在播放的歌曲資訊與播放進度',
     async execute(interaction, bot) {
         const queue = bot.music.getQueue(interaction.guild.id);
         if (!queue || !queue.songs.length) return bot.sendError(interaction, '無播放內容', '當前沒有正在播放的歌曲');

@@ -53,18 +53,35 @@ class MusicManager {
 
             const next = () => {
                 const q = this.queues.get(guild.id);
-                if (q) { 
-                    const finishedSong = q.songs.shift(); 
-                    if (finishedSong) q.lastSongIsTTS = finishedSong.isTTS;
-                    this.processQueue(guild.id); 
+                if (!q) return;
+
+                const finishedSong = q.songs[0];
+                if (finishedSong) {
+                    q.lastSongIsTTS = finishedSong.isTTS;
+
+                    if (q.loop === 'track') {
+                        // Keep song at index 0, replay it
+                    } else if (q.loop === 'queue' && !finishedSong.isTTS) {
+                        // Move finished song to end of queue for continuous loop
+                        q.songs.shift();
+                        q.songs.push(finishedSong);
+                    } else {
+                        // Default: remove the finished song
+                        q.songs.shift();
+                    }
                 }
+                this.processQueue(guild.id);
             };
 
             player.on('end', next);
             player.on('error', (err) => { console.error('[Play Error]', err); next(); });
             player.on('closed', () => this.queues.delete(guild.id));
 
-            this.queues.set(guild.id, { player, songs: [], textChannel });
+            this.queues.set(guild.id, { player, songs: [], textChannel, loop: 'none' });
+
+            // Restore saved volume from settings
+            const savedVolume = this.bot.settings?.get(guild.id, 'volume');
+            if (savedVolume) player.setGlobalVolume(savedVolume);
         }
         const q = this.queues.get(guild.id);
         q.textChannel = textChannel;
@@ -91,7 +108,8 @@ class MusicManager {
             if (song.resumePosition) {
                 await queue.player.seekTo(song.resumePosition);
             }
-            if (!song.isTTS && !song.resumePosition) {
+            // Suppress now-playing embed for TTS, resume, or track loop repeats
+            if (!song.isTTS && !song.resumePosition && queue.loop !== 'track') {
                 const embed = new EmbedBuilder()
                     .setColor(Colors.Primary)
                     .setTitle('▶️ 正在播放')
@@ -208,7 +226,7 @@ class MusicManager {
     }
 
     getQueue(guildId) { return this.queues.get(guildId); }
-    stop(guildId) { const q = this.queues.get(guildId); if (q) { q.songs = []; q.player.stopTrack(); } }
+    stop(guildId) { const q = this.queues.get(guildId); if (q) { q.songs = []; q.loop = 'none'; q.player.stopTrack(); } }
     skip(guildId) { this.queues.get(guildId)?.player?.stopTrack(); }
     pause(guildId) { this.queues.get(guildId)?.player?.setPaused(true); }
     resume(guildId) { this.queues.get(guildId)?.player?.setPaused(false); }

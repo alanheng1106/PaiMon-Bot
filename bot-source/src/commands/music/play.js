@@ -6,6 +6,9 @@ module.exports = {
         .setDescription('搜尋並加入網路高音質歌曲')
         .addStringOption(opt => opt.setName('query').setDescription('曲名或 URL').setRequired(true)),
 
+    category: 'music',
+    cooldown: 3,
+    helpText: '🔹 `/play [曲名或 URL]` - 搜尋並播放歌曲，支援 YouTube 關鍵字或直接貼上連結（包含播放清單）',
     async execute(interaction, bot) {
         const voiceChannel = interaction.member?.voice?.channel;
         if (!voiceChannel) return bot.sendError(interaction, '語音連線遭拒', '你必須先加入一個語音頻道!');
@@ -94,7 +97,7 @@ module.exports = {
 
         } catch (err) {
             console.error('[Play CMD]', err.message);
-            bot.sendError(interaction, '播放中斷', `發生阻礙: \`${err.message}\``);
+            bot.sendError(interaction, '播放中斷', '處理請求時發生內部錯誤，請稍後再試。');
         }
     },
 };

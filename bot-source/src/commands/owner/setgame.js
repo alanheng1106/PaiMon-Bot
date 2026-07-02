@@ -15,6 +15,8 @@ module.exports = {
                     { name: '正在看 (Watching)', value: ActivityType.Watching },
                     { name: '競爭 (Competing)', value: ActivityType.Competing }
                 )),
+    category: 'owner',
+    helpText: '🔹 `/setgame [狀態名稱] [類型]` - 設定機器人的活動狀態（僅限擁有者）',
     async execute(interaction, bot) {
         const ownerId = process.env.OWNER_ID;
         if (!ownerId || interaction.user.id !== ownerId) {

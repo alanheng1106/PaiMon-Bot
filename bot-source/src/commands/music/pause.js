@@ -5,6 +5,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('pause')
         .setDescription('暫停當前正在播放的歌曲'),
+    category: 'music',
+    helpText: '🔹 `/pause` - 暫停目前播放的歌曲',
     async execute(interaction, bot) {
         const voiceChannel = interaction.member?.voice?.channel;
         if (!voiceChannel) return bot.sendError(interaction, '語音連線遭拒', '你必須先加入一個語音頻道!');

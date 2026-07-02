@@ -5,6 +5,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('resume')
         .setDescription('恢復播放暫停的歌曲'),
+    category: 'music',
+    helpText: '🔹 `/resume` - 繼續播放暫停中的歌曲',
     async execute(interaction, bot) {
         const voiceChannel = interaction.member?.voice?.channel;
         if (!voiceChannel) return bot.sendError(interaction, '語音連線遭拒', '你必須先加入一個語音頻道!');

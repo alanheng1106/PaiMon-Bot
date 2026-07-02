@@ -24,6 +24,9 @@ module.exports = {
                     { name: '🇪🇸 西班牙文 (es)', value: 'es' }
                 )
         ),
+    category: 'general',
+    cooldown: 5,
+    helpText: '🔹 `/tts [文字] [語言]` - 將文字轉成語音並在語音頻道播放，支援繁中、英文、日文等多種語言',
     async execute(interaction, bot) {
         const voiceChannel = interaction.member?.voice?.channel;
         if (!voiceChannel) return bot.sendError(interaction, '語音錯誤', '你必須先加入一個語音頻道！');
@@ -69,7 +72,7 @@ module.exports = {
 
         } catch (error) {
             console.error('[TTS CMD]', error.message);
-            bot.sendError(interaction, 'TTS 錯誤', `發生錯誤: \`${error.message}\``);
+            bot.sendError(interaction, 'TTS 錯誤', 'TTS 處理時發生內部錯誤，請稍後再試。');
         }
     }
 };
