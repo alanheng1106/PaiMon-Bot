@@ -12,7 +12,8 @@ services:
       - LAVALINK_PORT=2333
       - LAVALINK_PASSWORD=youshallnotpass
     depends_on:
-      - lavalink
+      lavalink:
+        condition: service_healthy
     networks:
       - internal_network
 
@@ -20,8 +21,11 @@ services:
     image: ghcr.io/lavalink-devs/lavalink:4
     container_name: lavalink
     restart: unless-stopped
-    ports:
-      - 2333:2333
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-H", "Authorization: youshallnotpass", "http://localhost:2333/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment:
       - _JAVA_OPTIONS=-Xmx2G 
     volumes:

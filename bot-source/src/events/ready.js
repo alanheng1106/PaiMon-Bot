@@ -12,7 +12,7 @@ module.exports = {
             console.log(`[Process] Synchronized ${commandsData.length} Slash Commands with Discord Global Registry.`);
 
             bot.user.setPresence({
-                activities: [{ name: '原神 启动!', type: 0 }],
+                activities: [{ name: '直接標記我來聊天!', type: 0 }],
                 status: 'dnd'
             });
         } catch (error) {

@@ -1,13 +1,12 @@
 # PaiMon-Bot
 
-PaiMon-Bot is a Discord bot built with `discord.js`, AI chat/image features, and Lavalink-powered music playback.
+PaiMon-Bot is a Discord bot built with `discord.js` and Lavalink-powered music playback.
 
 ## Features
 
-- Discord slash commands for admin tools, general utilities, AI, and music
-- AI chat command backed by cloud/local model configuration
-- Image generation through Hugging Face Inference
+- Discord slash commands for admin tools, general utilities, and music
 - Lavalink music playback with queue, pause, resume, skip, stop, volume, and now playing commands
+- Text-to-speech (TTS) powered by Google TTS, with intelligent queue interruption
 - Docker Compose setup for running the bot and Lavalink together
 
 ## Requirements
@@ -16,7 +15,6 @@ PaiMon-Bot is a Discord bot built with `discord.js`, AI chat/image features, and
 - npm
 - Docker and Docker Compose, if running the full container setup
 - A Discord application and bot token
-- Optional API keys for AI/search/image features
 
 ## Setup
 
@@ -33,18 +31,13 @@ cd PaiMon-Bot
 cp .env.example .env
 ```
 
-3. Fill in `.env` with your Discord token, application IDs, and optional AI keys.
+3. Fill in `.env` with your Discord token, application IDs, and optional keys.
 
 ```env
 DISCORD_TOKEN=
 CLIENT_ID=
 GUILD_ID=
-
-OLLAMA_API_KEY=
-OLLAMA_MODEL=llama3.1:8b
-HF_TOKEN=
-HF_IMAGE_MODEL=stabilityai/stable-diffusion-xl-base-1.0
-SERPER_API_KEY=
+OWNER_ID=
 
 LAVALINK_HOST=lavalink
 LAVALINK_PORT=2333
@@ -84,20 +77,20 @@ Admin:
 - `/ban`
 - `/kick`
 - `/rename`
+
+Owner:
+
 - `/setgame`
 - `/setstatus`
 - `/shutdown`
-
-AI:
-
-- `/ask`
-- `/imagine`
+- `/restart`
 
 General:
 
 - `/about`
 - `/help`
 - `/ping`
+- `/tts`
 
 Music:
 
@@ -134,4 +127,6 @@ Music:
 
 - Keep `.env` private. It is ignored by Git.
 - `node_modules/`, Lavalink logs, and downloaded jar files are ignored by Git.
-- Lavalink uses `youshallnotpass` as the default password in this setup. Change it in both `.env` and `lavalink/application.yml` for production.
+- Set `OWNER_ID` in `.env` to your Discord user ID. Owner commands (`/setgame`, `/setstatus`, `/shutdown`, `/restart`) are restricted to this user regardless of server permissions.
+- Lavalink uses `youshallnotpass` as the default password in this setup. **Change it** in both `.env` and `lavalink/application.yml` before deploying.
+- Lavalink is not exposed on the host network by default; it communicates with the bot through the internal Docker network only.

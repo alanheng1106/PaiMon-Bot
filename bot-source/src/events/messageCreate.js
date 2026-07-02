@@ -27,6 +27,15 @@ module.exports = {
         const isDM = !message.guild;
         const isMentioned = message.mentions.has(bot.user.id);
 
+        if (!isDM && !isMentioned) {
+            // Passive Context Reading
+            const userName = message.member?.displayName || message.author.username;
+            if (bot.ai) {
+                bot.ai.addPassiveContext(message.channel.id, userName, message.content);
+            }
+            return;
+        }
+
         if (isDM || isMentioned) {
             let userMessage = message.content;
             if (isMentioned) {

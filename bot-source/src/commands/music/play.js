@@ -34,7 +34,7 @@ module.exports = {
 
         try {
             const { isPlaylist, name, tracks } = await bot.music.search(query);
-            if (!tracks?.length) return bot.sendError(interaction, '查無結果', `未找到任何关于 \`${query}\` 的匹配结果`);
+            if (!tracks?.length) return bot.sendError(interaction, '查無結果', `找不到任何與 \`${query}\` 相符的結果`);
 
             if (isPlaylist) {
                 await bot.music.playPlaylist(voiceChannel, interaction.channel, name, tracks, interaction.user);

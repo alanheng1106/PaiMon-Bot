@@ -1,9 +1,9 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ActivityType } = require('discord.js');
+const { SlashCommandBuilder, ActivityType } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('setgame')
-        .setDescription('設定機器人遊玩狀態')
+        .setDescription('設定機器人遊玩狀態 (僅限擁有者)')
         .addStringOption(option => option.setName('name').setDescription('狀態名稱').setRequired(true))
         .addIntegerOption(option =>
             option.setName('type')
@@ -14,9 +14,13 @@ module.exports = {
                     { name: '正在聽 (Listening)', value: ActivityType.Listening },
                     { name: '正在看 (Watching)', value: ActivityType.Watching },
                     { name: '競爭 (Competing)', value: ActivityType.Competing }
-                ))
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+                )),
     async execute(interaction, bot) {
+        const ownerId = process.env.OWNER_ID;
+        if (!ownerId || interaction.user.id !== ownerId) {
+            return bot.sendError(interaction, '權限不足', '此指令僅限機器人擁有者使用。');
+        }
+
         const name = interaction.options.getString('name', true).trim();
         const type = interaction.options.getInteger('type');
 

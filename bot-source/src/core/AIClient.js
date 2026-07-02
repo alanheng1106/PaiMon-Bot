@@ -35,7 +35,7 @@ class AIClient {
             ttl: 1000 * 60 * 60 * 2, // Clear history after 2 hours of inactivity
         });
 
-        this.cacheSize = 7;
+        this.cacheSize = 20;
 
         // Dynamic Tool Initialization
         this.tools = [
@@ -100,6 +100,35 @@ class AIClient {
         return this.chats.get(channelId);
     }
 
+    // Shared history pruning to prevent double-counting between passive and active messages
+    _pruneHistory(channelId) {
+        const history = this.chats.get(channelId);
+        if (!history || history.length <= this.cacheSize) return;
+
+        const systemPrompt = history[0];
+        let recentHistory = history.slice(-(this.cacheSize - 1));
+
+        // Never start with a tool message (context would be broken)
+        while (recentHistory.length > 0 && recentHistory[0].role === 'tool') {
+            recentHistory.shift();
+        }
+
+        this.chats.set(channelId, [systemPrompt, ...recentHistory]);
+    }
+
+    addPassiveContext(channelId, userName, text) {
+        if (!text || text.trim() === '') return;
+
+        let history = this._ensureSession(channelId);
+
+        history.push({
+            role: 'user',
+            content: `[${userName}] (在旁邊聊天): ${text}`
+        });
+
+        this._pruneHistory(channelId);
+    }
+
     async _webSearch(query) {
         const key = process.env.SERPER_API_KEY;
         if (!key) return "Error: SERPER_API_KEY is not configured in .env.";
@@ -145,19 +174,8 @@ class AIClient {
         }
 
         history.push(userMessage);
-
-        // Safe History Pruning: Prevent Context Breaking
-        if (history.length > this.cacheSize) {
-            const systemPrompt = history[0];
-            const recentHistory = history.slice(-(this.cacheSize - 1));
-
-            while (recentHistory.length > 0 && recentHistory[0].role === 'tool') {
-                recentHistory.shift();
-            }
-
-            history = [systemPrompt, ...recentHistory];
-            this.chats.set(channelId, history);
-        }
+        this._pruneHistory(channelId);
+        history = this.chats.get(channelId);
 
         try {
             let finalReplyText = '';

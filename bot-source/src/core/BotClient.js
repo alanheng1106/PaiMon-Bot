@@ -73,9 +73,6 @@ class BotClient extends Client {
      * Finalized production bootloader.
      */
     async boot() {
-        // Global error suppression for clean production logs
-
-        process.removeAllListeners('warning');
         process.on('unhandledRejection', err => console.error('[Fatal Catch]', err.stack || err));
 
         this._loadCommands();

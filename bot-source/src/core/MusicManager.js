@@ -20,8 +20,8 @@ class MusicManager {
 
         this.shoukaku = new Shoukaku(new Connectors.DiscordJS(this.bot), nodes, {
             moveOnDisconnect: true,
-            reconnectTries: 5,
-            reconnectInterval: 5000
+            reconnectTries: 20,
+            reconnectInterval: 10000
         });
 
         this.shoukaku.on('error', (node, err) => console.warn(`[Node Error] ${node}: ${err.message}`));
@@ -53,7 +53,11 @@ class MusicManager {
 
             const next = () => {
                 const q = this.queues.get(guild.id);
-                if (q) { q.songs.shift(); this.processQueue(guild.id); }
+                if (q) { 
+                    const finishedSong = q.songs.shift(); 
+                    if (finishedSong) q.lastSongIsTTS = finishedSong.isTTS;
+                    this.processQueue(guild.id); 
+                }
             };
 
             player.on('end', next);
@@ -72,44 +76,68 @@ class MusicManager {
         if (!queue) return;
 
         if (!queue.songs.length) {
-            const embed = new EmbedBuilder()
-                .setColor(Colors.Primary)
-                .setDescription('🎶 播放佇列已結束');
-            queue.textChannel?.send({ embeds: [embed] }).catch(() => { });
+            if (!queue.lastSongIsTTS) {
+                const embed = new EmbedBuilder()
+                    .setColor(Colors.Primary)
+                    .setDescription('🎶 播放佇列已結束');
+                queue.textChannel?.send({ embeds: [embed] }).catch(() => { });
+            }
             return;
         }
 
         const song = queue.songs[0];
         try {
             await queue.player.playTrack({ track: { encoded: song.encoded } });
-            const embed = new EmbedBuilder()
-                .setColor(Colors.Primary)
-                .setTitle('▶️ 正在播放')
-                .setDescription(`[${song.title}](${song.url}) - *${song.author}*`);
-            queue.textChannel?.send({ embeds: [embed] }).catch(() => { });
-
+            if (song.resumePosition) {
+                await queue.player.seekTo(song.resumePosition);
+            }
+            if (!song.isTTS && !song.resumePosition) {
+                const embed = new EmbedBuilder()
+                    .setColor(Colors.Primary)
+                    .setTitle('▶️ 正在播放')
+                    .setDescription(`[${song.title}](${song.url}) - *${song.author}*`);
+                queue.textChannel?.send({ embeds: [embed] }).catch(() => { });
+            }
         } catch {
             queue.songs.shift();
             this.processQueue(guildId);
         }
     }
 
-    async play(voiceChannel, textChannel, track, user) {
+    async play(voiceChannel, textChannel, track, user, options = {}) {
         const queue = await this._ensureSession(voiceChannel.guild, voiceChannel.id, textChannel);
         const wasEmpty = !queue.songs.length;
 
-        queue.songs.push({
+        const newSong = {
             title: track.info.title,
             author: track.info.author,
             url: track.info.uri,
             encoded: track.encoded,
             duration: track.info.length,
             thumbnail: track.info.artworkUrl || `https://img.youtube.com/vi/${track.info.identifier}/hqdefault.jpg`,
-            requester: { tag: user.tag, id: user.id }
-        });
+            requester: { tag: user.tag, id: user.id },
+            isTTS: options.isTTS || false
+        };
+
+        if (options.isTTS && !wasEmpty) {
+            if (!queue.songs[0].isTTS) {
+                const songToResume = { ...queue.songs[0], resumePosition: queue.player.position || 0 };
+                queue.songs.splice(1, 0, newSong, songToResume);
+                queue.player.stopTrack();
+            } else {
+                let insertIndex = 1;
+                while (insertIndex < queue.songs.length && queue.songs[insertIndex].isTTS) {
+                    insertIndex++;
+                }
+                queue.songs.splice(insertIndex, 0, newSong);
+            }
+            return;
+        }
+
+        queue.songs.push(newSong);
 
         if (wasEmpty) await this.processQueue(voiceChannel.guild.id);
-        else {
+        else if (!options.isTTS) {
             const embed = new EmbedBuilder()
                 .setColor(Colors.Primary)
                 .setTitle('✅ 已加入播放佇列')
