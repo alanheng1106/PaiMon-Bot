@@ -7,6 +7,7 @@ module.exports = {
         Primary: 0x2B2D31,   // Sleek Carbon/Dark Grey
         Error: 0xED4245,     // Distinct Red for alerts
         Success: 0x57F287,   // Vibrant Green for confirmation
+        Warning: 0xFEE75C,   // Amber Yellow for caution
         Music: 0x5865F2,     // Classic Discord Blurple
         AI: 0xFFD21E,        // Bright Yellow for Intelligence
     }

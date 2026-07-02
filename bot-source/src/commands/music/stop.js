@@ -23,7 +23,9 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setColor(Colors.Primary)
             .setTitle('⏹️ 停止播放')
-            .setDescription('播放已停止且佇列已清空');
+            .setDescription('播放已停止且佇列已清空')
+            .setTimestamp();
+
 
         await interaction.reply({ embeds: [embed] });
     },

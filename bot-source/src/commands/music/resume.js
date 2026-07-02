@@ -26,7 +26,9 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setColor(Colors.Primary)
             .setTitle('▶️ 恢復播放')
-            .setDescription('音樂播放已成功恢復');
+            .setDescription('音樂播放已成功恢復')
+            .setTimestamp();
+
 
         await interaction.reply({ embeds: [embed] });
     },

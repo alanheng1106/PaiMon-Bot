@@ -26,7 +26,9 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setColor(Colors.Primary)
             .setTitle('⏸️ 播放暫停')
-            .setDescription('音樂播放已成功暫停');
+            .setDescription('音樂播放已成功暫停')
+            .setTimestamp();
+
 
         await interaction.reply({ embeds: [embed] });
     },

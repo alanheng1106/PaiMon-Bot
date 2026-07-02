@@ -29,7 +29,9 @@ module.exports = {
             .setDescription(trackList)
             .addFields(
                 { name: '📊 統計資料', value: `總共: **${songs.length}** 首歌 | 總時長: **${bot.music.formatDuration(totalDurationMs)}**`, inline: false }
-            );
+            )
+            .setTimestamp();
+
 
         if (songs.length > 10) {
             embed.setFooter({ text: `以及還有 ${songs.length - 10} 首歌曲...` });

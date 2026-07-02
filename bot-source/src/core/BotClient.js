@@ -128,7 +128,7 @@ class BotClient extends Client {
         const { EmbedBuilder, MessageFlags } = require('discord.js');
         const { Colors } = require('../config');
         const embed = new EmbedBuilder()
-            .setColor(Colors.Primary)
+            .setColor(Colors.Success)
             .setTitle(title)
             .setDescription(description)
             .setTimestamp();

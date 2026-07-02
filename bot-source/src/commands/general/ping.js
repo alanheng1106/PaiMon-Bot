@@ -1,4 +1,5 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { Colors } = require('../../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -7,9 +8,6 @@ module.exports = {
     category: 'general',
     helpText: '🔹 `/ping` - 查看機器人目前的 WebSocket 與回應延遲',
     async execute(interaction, bot) {
-        const { EmbedBuilder } = require('discord.js');
-        const { Colors } = require('../../config');
-
         const initialEmbed = new EmbedBuilder()
             .setColor(Colors.Primary)
             .setDescription('🔍 正在偵測系統延遲...');
@@ -18,9 +16,10 @@ module.exports = {
         const latency = sent.createdTimestamp - interaction.createdTimestamp;
         const apiLatency = Math.round(bot.ws.ping);
 
-        let color = 0x57F287; // Green
-        if (latency > 200) color = 0xFEE75C; // Yellow
-        if (latency > 500) color = 0xED4245; // Red
+        // Pick color token based on latency thresholds
+        let color = Colors.Success;
+        if (latency > 200) color = Colors.Warning;
+        if (latency > 500) color = Colors.Error;
 
         const embed = new EmbedBuilder()
             .setColor(color)

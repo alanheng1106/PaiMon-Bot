@@ -1,4 +1,5 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
+const { Colors } = require('../../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -21,10 +22,15 @@ module.exports = {
         const amount = interaction.options.getInteger('amount');
         const targetUser = interaction.options.getUser('user');
 
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+        const replyEmbed = (color, title, description) =>
+            interaction.editReply({
+                embeds: [new EmbedBuilder().setColor(color).setTitle(title).setDescription(description).setTimestamp()]
+            });
 
         try {
-            // Fetch messages (fetch slightly more to account for filtering)
+            // Fetch slightly more messages to account for per-user filtering
             const fetchLimit = targetUser ? Math.min(amount * 5, 100) : amount;
             const fetched = await interaction.channel.messages.fetch({ limit: fetchLimit });
 
@@ -39,20 +45,20 @@ module.exports = {
             const skipped = toDelete.length - validMessages.length;
 
             if (validMessages.length === 0) {
-                return interaction.editReply('❌ 沒有可刪除的訊息（超過 14 天的訊息無法批量刪除）。');
+                return replyEmbed(Colors.Warning, '⚠️ 無可刪除訊息', '沒有可刪除的訊息。\n> 超過 14 天的訊息無法透過批量刪除清除。');
             }
 
             const deleted = await interaction.channel.bulkDelete(validMessages, true);
 
-            let resultMsg = `✅ 已成功刪除 **${deleted.size}** 則訊息`;
-            if (targetUser) resultMsg += `（來自 **${targetUser.tag}**）`;
-            if (skipped > 0) resultMsg += `\n⚠️ 已略過 **${skipped}** 則超過 14 天的舊訊息`;
+            let desc = `✅ 已成功刪除 **${deleted.size}** 則訊息`;
+            if (targetUser) desc += `（來自 **${targetUser.tag}**）`;
+            if (skipped > 0) desc += `\n> ⚠️ 已略過 **${skipped}** 則超過 14 天的舊訊息`;
 
-            await interaction.editReply(resultMsg);
+            await replyEmbed(Colors.Success, '🗑️ 清除完成', desc);
 
         } catch (err) {
             console.error('[Purge CMD]', err);
-            interaction.editReply('❌ 刪除過程中發生錯誤，請確認機器人擁有 `管理訊息` 的權限。');
+            replyEmbed(Colors.Error, '❌ 執行失敗', '刪除過程中發生錯誤，請確認機器人擁有 `管理訊息` 的權限。');
         }
     },
 };
