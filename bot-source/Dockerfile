@@ -1,11 +1,11 @@
 # 1. Start with a lightweight, official Node.js environment
-FROM node:20-alpine
+FROM node:20-slim
 
 # 2. Create a folder inside the container to hold your bot's files
 WORKDIR /usr/src/app
 
 # Install packages
-RUN apk add --no-cache font-noto
+RUN apt-get update && apt-get install -y fonts-noto && rm -rf /var/lib/apt/lists/*
 
 # 3. Copy ONLY your package files first
 COPY package*.json ./
