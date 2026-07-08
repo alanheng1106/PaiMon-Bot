@@ -8,6 +8,7 @@ const {
     TextDisplayBuilder,
     MessageFlags
 } = require('discord.js');
+const { Colors } = require('../../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -66,7 +67,6 @@ module.exports = {
             }
 
             // Interactive Selector
-            const { Colors } = require('../../config');
 
             const results = tracks.slice(0, 5);
             const selectMenu = new StringSelectMenuBuilder()

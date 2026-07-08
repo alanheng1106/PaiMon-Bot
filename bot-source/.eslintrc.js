@@ -6,7 +6,7 @@ module.exports = {
     extends: ['eslint:recommended', 'prettier'],
     parserOptions: {
         ecmaVersion: 12,
-        sourceType: 'module'
+        sourceType: 'commonjs'
     },
     rules: {
         'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],

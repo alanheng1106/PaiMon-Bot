@@ -12,7 +12,6 @@ module.exports = {
 
         await bot.sendSuccess(interaction, '⏹️ 系統關機', '🛑 機器人正在關機中... 再見', true);
         console.log(`[Core] Shutdown sequence initiated by ${interaction.user.tag}`);
-        bot.destroy();
-        process.exit(0);
+        await bot.shutdown(0);
     }
 };

@@ -110,8 +110,8 @@ class BotClient extends Client {
         try {
             if (interaction.deferred || interaction.replied) await interaction.followUp(payload);
             else await interaction.reply(payload);
-        } catch {
-            // Failsafe catch
+        } catch (err) {
+            console.warn('[sendError] Failed to deliver error response:', err.message);
         }
     }
 
@@ -130,9 +130,24 @@ class BotClient extends Client {
         try {
             if (interaction.deferred || interaction.replied) await interaction.followUp(payload);
             else await interaction.reply(payload);
-        } catch {
-            // Failsafe catch
+        } catch (err) {
+            console.warn('[sendSuccess] Failed to deliver success response:', err.message);
         }
+    }
+
+    /**
+     * Graceful shutdown: flush all pending writes, then destroy the client.
+     * @param {number} exitCode - Process exit code (0 = clean, 1 = restart)
+     */
+    async shutdown(exitCode = 0) {
+        console.log('[Core] Graceful shutdown initiated...');
+
+        // Flush debounced writes so no data is lost
+        this.settings.flush();
+        this.valorant.flush();
+
+        this.destroy();
+        process.exit(exitCode);
     }
 }
 

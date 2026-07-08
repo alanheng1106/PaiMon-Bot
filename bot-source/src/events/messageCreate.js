@@ -1,4 +1,5 @@
 const { Events } = require('discord.js');
+const googleTTS = require('google-tts-api');
 
 module.exports = {
     name: Events.MessageCreate,
@@ -45,21 +46,19 @@ module.exports = {
                         const textToSpeak = `${userName}說：${cleanText}`.slice(0, 200);
 
                         try {
-                            const googleTTS = require('google-tts-api');
                             const url = googleTTS.getAudioUrl(textToSpeak, {
                                 lang: ttsSettings.lang || 'zh-TW',
                                 slow: false,
                                 host: 'https://translate.google.com'
                             });
 
-                            bot.music.search(url).then(async ({ tracks }) => {
-                                if (tracks && tracks.length > 0) {
-                                    const track = tracks[0];
-                                    track.info.title = `TTS: ${textToSpeak}`;
-                                    track.info.author = `Language: ${ttsSettings.lang || 'zh-TW'}`;
-                                    await bot.music.play(targetVc, message.channel, track, message.author, { isTTS: true });
-                                }
-                            }).catch(err => console.error('[Automatic TTS Search Error]', err.message));
+                            const { tracks } = await bot.music.search(url);
+                            if (tracks && tracks.length > 0) {
+                                const track = tracks[0];
+                                track.info.title = `TTS: ${textToSpeak}`;
+                                track.info.author = `Language: ${ttsSettings.lang || 'zh-TW'}`;
+                                await bot.music.play(targetVc, message.channel, track, message.author, { isTTS: true });
+                            }
                         } catch (err) {
                             console.error('[Automatic TTS Error]', err.message);
                         }

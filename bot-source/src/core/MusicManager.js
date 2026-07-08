@@ -1,6 +1,6 @@
 const { Shoukaku, Connectors } = require('shoukaku');
 const { ContainerBuilder, TextDisplayBuilder, SectionBuilder, ThumbnailBuilder, MessageFlags } = require('discord.js');
-const { Colors } = require('../config');
+const { Colors, Music: MusicConfig } = require('../config');
 
 class MusicManager {
     constructor(bot) {
@@ -22,8 +22,8 @@ class MusicManager {
 
         this.shoukaku = new Shoukaku(new Connectors.DiscordJS(this.bot), nodes, {
             moveOnDisconnect: true,
-            reconnectTries: 20,
-            reconnectInterval: 10000
+            reconnectTries: MusicConfig.ReconnectTries,
+            reconnectInterval: MusicConfig.ReconnectIntervalMs
         });
 
         this.shoukaku.on('error', (node, err) => console.warn(`[Node Error] ${node}: ${err.message}`));
@@ -119,7 +119,8 @@ class MusicManager {
                 const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
                 queue.textChannel?.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
             }
-        } catch {
+        } catch (err) {
+            console.warn(`[MusicManager] Failed to play track in guild ${guildId}:`, err.message);
             queue.songs.shift();
             this.processQueue(guildId);
         }

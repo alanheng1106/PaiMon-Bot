@@ -13,8 +13,7 @@ module.exports = {
         await bot.sendSuccess(interaction, '🔄 系統重啟', '機器人正在重新啟動中... 稍後見！', true);
         console.log(`[Core] Restart sequence initiated by ${interaction.user.tag}`);
 
-        bot.destroy();
-        // Exiting the process will cause Docker's "restart: unless-stopped" policy to restart the bot
-        process.exit(1);
+        // Exit code 1 triggers Docker's "restart: unless-stopped" policy
+        await bot.shutdown(1);
     }
 };

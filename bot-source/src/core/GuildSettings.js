@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { Guild: GuildConfig } = require('../config');
 
 /**
  * Lightweight JSON-based guild settings persistence.
@@ -32,12 +33,8 @@ class GuildSettings {
     _save() {
         clearTimeout(this._debounceTimer);
         this._debounceTimer = setTimeout(() => {
-            try {
-                fs.writeFileSync(this.filePath, JSON.stringify(this.data, null, 2), 'utf8');
-            } catch (err) {
-                console.error('[GuildSettings] Failed to save settings file:', err.message);
-            }
-        }, 500);
+            this._writeSync();
+        }, GuildConfig.SaveDebounceMs);
     }
 
     /**
@@ -61,6 +58,27 @@ class GuildSettings {
         if (!this.data[guildId]) this.data[guildId] = {};
         this.data[guildId][key] = value;
         this._save();
+    }
+
+    /**
+     * Immediately persist to disk and cancel any pending debounce.
+     * Used during graceful shutdown to avoid data loss.
+     */
+    flush() {
+        clearTimeout(this._debounceTimer);
+        this._writeSync();
+    }
+
+    /** @private */
+    _writeSync() {
+        try {
+            if (!fs.existsSync(this.dataDir)) {
+                fs.mkdirSync(this.dataDir, { recursive: true });
+            }
+            fs.writeFileSync(this.filePath, JSON.stringify(this.data, null, 2), 'utf8');
+        } catch (err) {
+            console.error('[GuildSettings] Failed to save settings file:', err.message);
+        }
     }
 }
 

@@ -69,6 +69,8 @@ module.exports = {
             fetchReply: true
         });
 
+        let lastContainer = generateHomeEmbed();
+
         const collector = response.createMessageComponentCollector({
             componentType: ComponentType.StringSelect,
             time: 120_000
@@ -80,15 +82,15 @@ module.exports = {
             }
 
             const selected = i.values[0];
-            const container = selected === 'home' ? generateHomeEmbed() : generateCategoryEmbed(selected);
-            await i.update({ components: [container, actionRow], flags: MessageFlags.IsComponentsV2 });
+            lastContainer = selected === 'home' ? generateHomeEmbed() : generateCategoryEmbed(selected);
+            await i.update({ components: [lastContainer, actionRow], flags: MessageFlags.IsComponentsV2 });
         });
 
         collector.on('end', () => {
             selectMenu.setDisabled(true);
             const disabledRow = new ActionRowBuilder().addComponents(selectMenu);
             interaction
-                .editReply({ components: [disabledRow] })
+                .editReply({ components: [lastContainer, disabledRow], flags: MessageFlags.IsComponentsV2 })
                 .catch((e) => console.warn('Ignored error:', e.message));
         });
     }

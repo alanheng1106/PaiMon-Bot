@@ -1,6 +1,9 @@
 const { HfInference } = require('@huggingface/inference');
 const { Ollama } = require('ollama');
 const { LRUCache } = require('lru-cache');
+const fs = require('fs');
+const path = require('path');
+const { AI: AIConfig } = require('../config');
 
 class AIClient {
     constructor() {
@@ -31,11 +34,11 @@ class AIClient {
 
         // Memory Leak Prevention: Use LRU Cache instead of a standard Map
         this.chats = new LRUCache({
-            max: 100, // Maximum 100 active conversation channels in memory
-            ttl: 1000 * 60 * 60 * 2 // Clear history after 2 hours of inactivity
+            max: AIConfig.MaxChannels,
+            ttl: AIConfig.ChatTTL
         });
 
-        this.cacheSize = 20;
+        this.cacheSize = AIConfig.HistorySize;
 
         // Dynamic Tool Initialization
         this.tools = [
@@ -85,9 +88,26 @@ class AIClient {
         return !!this.hf;
     }
 
+    /**
+     * Load the system prompt template from disk. Cached after first read.
+     * @returns {string} The raw prompt template with {{date}} placeholder.
+     */
+    _loadPromptTemplate() {
+        if (this._promptTemplateCache) return this._promptTemplateCache;
+        try {
+            const promptPath = path.join(__dirname, '..', 'system-prompt.txt');
+            this._promptTemplateCache = fs.readFileSync(promptPath, 'utf8').trim();
+        } catch (err) {
+            console.error('[AIClient] Failed to load system-prompt.txt, using fallback:', err.message);
+            this._promptTemplateCache = '今天是 {{date}}。你是一個有幫助的助手。';
+        }
+        return this._promptTemplateCache;
+    }
+
     _ensureSession(channelId) {
         const currentDate = new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' });
-        const systemPrompt = `今天是 ${currentDate}。你擁有這個世界上最高的IQ 和 EQ，你回話自然、精煉，並且擅長使用表情符號，具備極強的邏輯推演能力。不要當 Yes Man，有問題請指出。你在回答任何問題之前必須先檢查回答內容裡有沒有 everyone 和 here 或像 123456789 這種後面加上號碼的 都是 discord 用戶的 ID，千萬不能提及他們，不要在對話中包含他們。嚴禁使用 Markdown 表格 (Table) 回答，因為 Discord 不支援表格顯示，會導致排版混亂，請改用條列式 (List) 或加粗文字排版。嚴禁使用 LaTeX 格式 (如 \\frac, \\sum) 回答數學問題，請改用純文字、Unicode 符號或程式碼區塊來表示數學公式，使其在 Discord 上易於閱讀。當你看到消息以 [姓名]: 開頭時，代表那是該用戶說的話。當你使用 Google Search 搜尋資訊時，請優先根據搜尋結果回答。如果搜尋結果中有具體的日期、價格或數據，請務必準確引用。嚴禁編造搜尋結果中不存在的事實。`;
+        const promptTemplate = this._loadPromptTemplate();
+        const systemPrompt = promptTemplate.replace('{{date}}', currentDate);
 
         if (!this.chats.has(channelId)) {
             this.chats.set(channelId, [{ role: 'system', content: systemPrompt }]);
@@ -118,7 +138,7 @@ class AIClient {
 
     addPassiveContext(channelId, userName, text) {
         // Ignore empty or very short messages (emoji reactions, single words) — they add noise without value
-        if (!text || text.trim().length < 5) return;
+        if (!text || text.trim().length < AIConfig.MinPassiveLength) return;
 
         let history = this._ensureSession(channelId);
 

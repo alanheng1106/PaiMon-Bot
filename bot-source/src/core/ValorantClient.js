@@ -1,10 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { Valorant: ValConfig } = require('../config');
+
+const encryptionSource = process.env.ENCRYPTION_KEY || process.env.DISCORD_TOKEN;
+if (!encryptionSource) {
+    console.error('[Valorant] WARNING: No ENCRYPTION_KEY or DISCORD_TOKEN set. Session encryption will be ineffective!');
+} else if (!process.env.ENCRYPTION_KEY) {
+    console.warn('[Valorant] ENCRYPTION_KEY not set, falling back to DISCORD_TOKEN. Set a dedicated ENCRYPTION_KEY for better security.');
+}
 
 const ENCRYPTION_KEY = crypto
     .createHash('sha256')
-    .update(String(process.env.ENCRYPTION_KEY || process.env.DISCORD_TOKEN || 'default-secret-key-123'))
+    .update(String(encryptionSource || 'no-key-configured'))
     .digest();
 const IV_LENGTH = 16;
 
@@ -109,17 +117,8 @@ class ValorantClient {
     _save() {
         clearTimeout(this._debounceTimer);
         this._debounceTimer = setTimeout(() => {
-            try {
-                if (!fs.existsSync(this.dataDir)) {
-                    fs.mkdirSync(this.dataDir, { recursive: true });
-                }
-                const rawData = JSON.stringify(this.sessions, null, 2);
-                const encryptedData = encrypt(rawData);
-                fs.writeFileSync(this.filePath, encryptedData, 'utf8');
-            } catch (err) {
-                console.error('[Valorant] Failed to save sessions:', err.message);
-            }
-        }, 500);
+            this._writeSync();
+        }, ValConfig.SaveDebounceMs);
     }
 
     // ─── Session Management ──────────────────────────────────
@@ -133,7 +132,7 @@ class ValorantClient {
         }
         this.sessions[discordUserId][riotId] = {
             ...sessionData,
-            tokenExpiresAt: Date.now() + 55 * 60 * 1000 // ~55 min (token lasts ~1hr)
+            tokenExpiresAt: Date.now() + ValConfig.TokenLifetimeMs
         };
         this._save();
     }
@@ -176,7 +175,7 @@ class ValorantClient {
                 session.accessToken = refreshed.accessToken;
                 session.entitlementsToken = entitlementsToken;
                 session.cookies = refreshed.cookies;
-                session.tokenExpiresAt = Date.now() + 55 * 60 * 1000;
+                session.tokenExpiresAt = Date.now() + ValConfig.TokenLifetimeMs;
                 this._save();
                 console.log(`[Valorant] Cookie reauth successful for ${riotId}`);
             } catch (err) {
@@ -374,8 +373,8 @@ class ValorantClient {
                 region,
                 shard: REGION_TO_SHARD[region] || 'ap'
             };
-        } catch {
-            // Default to AP if geo lookup fails
+        } catch (err) {
+            console.warn('[Valorant] Geo lookup failed, defaulting to AP:', err.message);
             return { region: 'ap', shard: 'ap' };
         }
     }
@@ -425,7 +424,7 @@ class ValorantClient {
      * Cached for 30 minutes.
      */
     async getClientVersion() {
-        if (this._clientVersionCache && Date.now() - this._clientVersionCacheTime < 30 * 60 * 1000) {
+        if (this._clientVersionCache && Date.now() - this._clientVersionCacheTime < ValConfig.ClientVersionCacheTTL) {
             return this._clientVersionCache;
         }
         try {
@@ -434,7 +433,8 @@ class ValorantClient {
             this._clientVersionCache = data.data?.riotClientVersion || 'release-09.00-shipping-18-2594470';
             this._clientVersionCacheTime = Date.now();
             return this._clientVersionCache;
-        } catch {
+        } catch (err) {
+            console.warn('[Valorant] Failed to fetch client version, using fallback:', err.message);
             return 'release-09.00-shipping-18-2594470';
         }
     }
@@ -485,7 +485,7 @@ class ValorantClient {
      * Cached for 6 hours.
      */
     async _loadSkinDatabase() {
-        if (this._skinCache && Date.now() - this._skinCacheTime < 6 * 60 * 60 * 1000) {
+        if (this._skinCache && Date.now() - this._skinCacheTime < ValConfig.SkinCacheTTL) {
             return this._skinCache;
         }
 
@@ -554,6 +554,29 @@ class ValorantClient {
                 tierColor: info?.tierColor || '#888888'
             };
         });
+    }
+
+    /**
+     * Immediately persist sessions to disk and cancel any pending debounce.
+     * Used during graceful shutdown to avoid data loss.
+     */
+    flush() {
+        clearTimeout(this._debounceTimer);
+        this._writeSync();
+    }
+
+    /** @private */
+    _writeSync() {
+        try {
+            if (!fs.existsSync(this.dataDir)) {
+                fs.mkdirSync(this.dataDir, { recursive: true });
+            }
+            const rawData = JSON.stringify(this.sessions, null, 2);
+            const encryptedData = encrypt(rawData);
+            fs.writeFileSync(this.filePath, encryptedData, 'utf8');
+        } catch (err) {
+            console.error('[Valorant] Failed to save sessions:', err.message);
+        }
     }
 }
 

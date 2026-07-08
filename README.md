@@ -115,6 +115,13 @@ Valorant:
 - `/valstore` — 查看 Valorant 每日商店
 - `/vallogout` — 登出 Riot 帳號
 
+AI Chat:
+
+- **@mention the bot** in any channel, or **send a DM** to start a conversation.
+- The bot uses Ollama for text generation with streaming responses and supports tool-calling (web search, time queries).
+- Image understanding is supported — attach an image to your message and the bot will use a vision model to analyze it.
+- The bot passively reads channel messages to build context, so it can follow ongoing conversations when mentioned.
+
 ## Project Structure
 
 ```text
