@@ -1,40 +1,53 @@
+/**
+ * Global UI Patch — Auto-inject SeparatorBuilder after `### ` headings.
+ *
+ * This patches ContainerBuilder.prototype.addTextDisplayComponents so that
+ * every TextDisplayBuilder whose content contains a `### ` heading is
+ * automatically split into separate text blocks with dividers between them.
+ *
+ * WHY A PATCH?  The bot uses `### ` headings as a visual section delimiter
+ * across 30+ command files.  Rather than importing a helper in every file,
+ * this single patch keeps the codebase DRY.  If discord.js ever changes the
+ * ContainerBuilder API, this is the ONE place to update.
+ *
+ * Call this function ONCE at startup (before any commands run).
+ */
+
 const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder } = require('discord.js');
 
-/**
- * Build a styled ContainerBuilder that automatically injects a visual separator
- * after any line starting with `### `. This replaces the old monkey-patch on
- * ContainerBuilder.prototype.addTextDisplayComponents.
- *
- * @param {number} accentColor - Hex color for the container accent.
- * @param {string} content     - Markdown text content. Lines beginning with
- *                                `### ` trigger a separator after them.
- * @returns {ContainerBuilder}
- */
-function buildContainer(accentColor, content) {
-    const container = new ContainerBuilder().setAccentColor(accentColor);
-    const lines = content.split('\n');
-    let currentBlock = [];
+function installUIPatch() {
+    const originalAddText = ContainerBuilder.prototype.addTextDisplayComponents;
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        currentBlock.push(line);
+    ContainerBuilder.prototype.addTextDisplayComponents = function (...components) {
+        for (const comp of components) {
+            if (comp && comp.data && typeof comp.data.content === 'string') {
+                const lines = comp.data.content.split('\n');
+                let currentBlock = [];
 
-        if (line.trim().startsWith('### ')) {
-            const joined = currentBlock.join('\n').trim();
-            if (joined) {
-                container.addTextDisplayComponents(new TextDisplayBuilder().setContent(joined));
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    currentBlock.push(line);
+                    if (line.trim().startsWith('### ')) {
+                        const joined = currentBlock.join('\n').trim();
+                        if (joined) {
+                            originalAddText.call(this, new TextDisplayBuilder().setContent(joined));
+                        }
+                        this.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+                        currentBlock = [];
+                    }
+                }
+                const joined = currentBlock.join('\n').trim();
+                if (joined) {
+                    originalAddText.call(this, new TextDisplayBuilder().setContent(joined));
+                }
+            } else {
+                originalAddText.call(this, comp);
             }
-            container.addSeparatorComponents(new SeparatorBuilder().setDivider(true));
-            currentBlock = [];
         }
-    }
+        return this;
+    };
 
-    const joined = currentBlock.join('\n').trim();
-    if (joined) {
-        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(joined));
-    }
-
-    return container;
+    console.log('[UI] Separator auto-injection patch installed.');
 }
 
-module.exports = { buildContainer };
+module.exports = { installUIPatch };
