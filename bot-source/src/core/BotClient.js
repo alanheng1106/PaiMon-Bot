@@ -1,10 +1,12 @@
-const { Client, GatewayIntentBits, Partials, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Collection, ContainerBuilder, TextDisplayBuilder, MessageFlags } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const AIClient = require('./AIClient');
+const ValorantClient = require('./ValorantClient');
 const MusicManager = require('./MusicManager');
 const CooldownManager = require('./CooldownManager');
 const GuildSettings = require('./GuildSettings');
+const { Colors } = require('../config');
 
 class BotClient extends Client {
     constructor() {
@@ -14,12 +16,9 @@ class BotClient extends Client {
                 GatewayIntentBits.GuildVoiceStates,
                 GatewayIntentBits.GuildMessages,
                 GatewayIntentBits.MessageContent,
-                GatewayIntentBits.DirectMessages,
+                GatewayIntentBits.DirectMessages
             ],
-            partials: [
-                Partials.Channel,
-                Partials.Message,
-            ]
+            partials: [Partials.Channel, Partials.Message]
         });
 
         this.commands = new Collection();
@@ -27,6 +26,7 @@ class BotClient extends Client {
         this.music = new MusicManager(this);
         this.cooldowns = new CooldownManager();
         this.settings = new GuildSettings();
+        this.valorant = new ValorantClient();
     }
 
     /**
@@ -43,7 +43,7 @@ class BotClient extends Client {
             const folderPath = path.join(commandsPath, folder);
             if (!fs.statSync(folderPath).isDirectory()) continue;
 
-            const files = fs.readdirSync(folderPath).filter(f => f.endsWith('.js'));
+            const files = fs.readdirSync(folderPath).filter((f) => f.endsWith('.js'));
             for (const file of files) {
                 const command = require(path.join(folderPath, file));
                 if (command.data && command.execute) {
@@ -62,7 +62,7 @@ class BotClient extends Client {
         const eventsPath = path.join(__dirname, '..', 'events');
         if (!fs.existsSync(eventsPath)) return;
 
-        const files = fs.readdirSync(eventsPath).filter(f => f.endsWith('.js'));
+        const files = fs.readdirSync(eventsPath).filter((f) => f.endsWith('.js'));
         for (const file of files) {
             const event = require(path.join(eventsPath, file));
             if (event.once) {
@@ -77,7 +77,7 @@ class BotClient extends Client {
      * Finalized production bootloader.
      */
     async boot() {
-        process.on('unhandledRejection', err => console.error('[Fatal Catch]', err.stack || err));
+        process.on('unhandledRejection', (err) => console.error('[Fatal Catch]', err.stack || err));
 
         this._loadCommands();
         this._loadEvents();
@@ -86,7 +86,6 @@ class BotClient extends Client {
         if (!token) throw new Error('[Core] DISCORD_TOKEN is missing.');
 
         console.log('[Core] System initialized. Connecting to Discord gateway...');
-
 
         try {
             await this.login(token);
@@ -102,21 +101,17 @@ class BotClient extends Client {
      */
 
     async sendError(interaction, title, description) {
-        const { EmbedBuilder, MessageFlags } = require('discord.js');
-        const { Colors } = require('../config');
-        const embed = new EmbedBuilder()
-            .setColor(Colors.Error)
-            .setTitle(`❌ ${title}`)
-            .setDescription(description)
-            .setTimestamp();
+        const text = new TextDisplayBuilder().setContent(`### ❌ ${title}\n${description}`);
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Error)
+            .addTextDisplayComponents(text);
 
-        const payload = { embeds: [embed], flags: MessageFlags.Ephemeral };
+        const payload = { components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 };
         try {
             if (interaction.deferred || interaction.replied) await interaction.followUp(payload);
             else await interaction.reply(payload);
         } catch {
             // Failsafe catch
-
         }
     }
 
@@ -125,15 +120,13 @@ class BotClient extends Client {
      */
 
     async sendSuccess(interaction, title, description, ephemeral = false) {
-        const { EmbedBuilder, MessageFlags } = require('discord.js');
-        const { Colors } = require('../config');
-        const embed = new EmbedBuilder()
-            .setColor(Colors.Success)
-            .setTitle(title)
-            .setDescription(description)
-            .setTimestamp();
+        const text = new TextDisplayBuilder().setContent(`### ${title}\n${description}`);
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Success)
+            .addTextDisplayComponents(text);
 
-        const payload = { embeds: [embed], flags: ephemeral ? MessageFlags.Ephemeral : undefined };
+        const flags = (ephemeral ? MessageFlags.Ephemeral : 0) | MessageFlags.IsComponentsV2;
+        const payload = { components: [container], flags };
         try {
             if (interaction.deferred || interaction.replied) await interaction.followUp(payload);
             else await interaction.reply(payload);

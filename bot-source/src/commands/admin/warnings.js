@@ -1,12 +1,11 @@
-const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SectionBuilder, ThumbnailBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('warnings')
         .setDescription('查看指定成員的警告記錄')
-        .addUserOption(option =>
-            option.setName('user').setDescription('要查詢的成員').setRequired(true))
+        .addUserOption((option) => option.setName('user').setDescription('要查詢的成員').setRequired(true))
         .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
     category: 'admin',
     helpText: '🔹 `/warnings [成員]` - 查看指定成員的所有警告記錄（原因、時間、發出者）',
@@ -17,26 +16,25 @@ module.exports = {
         const userWarnings = guildWarnings[user.id] ?? [];
 
         if (userWarnings.length === 0) {
-            return bot.sendSuccess(interaction, '📋 警告記錄',
-                `**${user.tag}** 目前沒有任何警告記錄。`, true);
+            return bot.sendSuccess(interaction, '📋 警告記錄', `**${user.tag}** 目前沒有任何警告記錄。`, true);
         }
 
         // Show last 10 warnings
         const displayWarnings = userWarnings.slice(-10);
-        const warnLines = displayWarnings.map((w, i) => {
-            const index = userWarnings.length - displayWarnings.length + i + 1;
-            const date = new Date(w.timestamp).toLocaleDateString('zh-TW');
-            return `**#${index}** \`${date}\` — ${w.reason}\n　　↳ 由 **${w.by}** 發出`;
-        }).join('\n');
+        const warnLines = displayWarnings
+            .map((w, i) => {
+                const index = userWarnings.length - displayWarnings.length + i + 1;
+                const date = new Date(w.timestamp).toLocaleDateString('zh-TW');
+                return `**#${index}** \`${date}\` — ${w.reason}\n　　↳ 由 **${w.by}** 發出`;
+            })
+            .join('\n');
 
-        const embed = new EmbedBuilder()
-            .setColor(Colors.Error)
-            .setTitle(`⚠️ 警告記錄 — ${user.tag}`)
-            .setThumbnail(user.displayAvatarURL())
-            .setDescription(warnLines)
-            .setFooter({ text: `共 ${userWarnings.length} 次警告${userWarnings.length > 10 ? '（僅顯示最近 10 次）' : ''}` })
-            .setTimestamp();
+        const content = `### ⚠️ 警告記錄 — ${user.tag}\n${warnLines}\n\n共 ${userWarnings.length} 次警告${userWarnings.length > 10 ? '（僅顯示最近 10 次）' : ''}`;
+        const text = new TextDisplayBuilder().setContent(content);
+        const thumbnail = new ThumbnailBuilder().setURL(user.displayAvatarURL());
+        const section = new SectionBuilder().addTextDisplayComponents(text).setThumbnailAccessory(thumbnail);
+        const container = new ContainerBuilder().setAccentColor(Colors.Error).addSectionComponents(section);
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
-    },
+        await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
+    }
 };

@@ -1,10 +1,8 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('loop')
-        .setDescription('切換循環模式 (關閉 → 單曲循環 → 佇列循環)'),
+    data: new SlashCommandBuilder().setName('loop').setDescription('切換循環模式 (關閉 → 單曲循環 → 佇列循環)'),
     category: 'music',
     helpText: '🔹 `/loop` - 循環切換播放模式：關閉 → 🔂 單曲循環 → 🔁 佇列循環 → 關閉',
     async execute(interaction, bot) {
@@ -33,12 +31,10 @@ module.exports = {
             queue: '🔁 佇列循環'
         };
 
-        const embed = new EmbedBuilder()
-            .setColor(Colors.Primary)
-            .setTitle('🔄 循環模式')
-            .setDescription(`循環模式已切換為：**${modeLabels[nextMode]}**`)
-            .setTimestamp();
+        const modeText = modeLabels[nextMode];
+        const text = new TextDisplayBuilder().setContent(`### 🔁 循環模式已更改\n當前循環模式：**${modeText}**`);
+        const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
 
-        await interaction.reply({ embeds: [embed] });
+        await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     }
 };

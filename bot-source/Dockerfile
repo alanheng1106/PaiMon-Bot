@@ -4,6 +4,9 @@ FROM node:20-alpine
 # 2. Create a folder inside the container to hold your bot's files
 WORKDIR /usr/src/app
 
+# Install packages
+RUN apk add --no-cache font-noto
+
 # 3. Copy ONLY your package files first
 COPY package*.json ./
 

@@ -1,10 +1,8 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('shuffle')
-        .setDescription('隨機打亂佇列中的歌曲順序'),
+    data: new SlashCommandBuilder().setName('shuffle').setDescription('隨機打亂佇列中的歌曲順序'),
     category: 'music',
     cooldown: 5,
     helpText: '🔹 `/shuffle` - 將目前佇列中的歌曲（不含正在播放的）隨機打亂',
@@ -36,12 +34,9 @@ module.exports = {
 
         queue.songs = [current, ...rest];
 
-        const embed = new EmbedBuilder()
-            .setColor(Colors.Primary)
-            .setTitle('🔀 佇列已打亂')
-            .setDescription(`✅ 已隨機打亂 **${rest.length}** 首歌曲的播放順序`)
-            .setTimestamp();
+        const text = new TextDisplayBuilder().setContent(`### 🔀 佇列已打亂\n✅ 已隨機打亂 **${rest.length}** 首歌曲的播放順序`);
+        const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
 
-        await interaction.reply({ embeds: [embed] });
+        await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     }
 };

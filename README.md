@@ -109,6 +109,12 @@ Music:
 - `/volume`
 - `/disconnect`
 
+Valorant:
+
+- `/vallogin` — 登入 Riot 帳號（支援多帳號 & 2FA）
+- `/valstore` — 查看 Valorant 每日商店
+- `/vallogout` — 登出 Riot 帳號
+
 ## Project Structure
 
 ```text
@@ -118,8 +124,12 @@ Music:
 │   ├── package.json
 │   └── src/
 │       ├── commands/
+│       │   ├── valorant/  ← vallogin, valstore, vallogout
+│       │   └── ...
 │       ├── core/
-│       ├── data/          ← guild-settings.json (auto-created)
+│       │   ├── ValorantClient.js
+│       │   └── ...
+│       ├── data/          ← guild-settings.json, val-sessions.json (auto-created)
 │       └── events/
 ├── lavalink/
 │   └── application.yml
@@ -136,3 +146,4 @@ Music:
 - Lavalink uses `youshallnotpass` as the default password in this setup. **Change it** in both `.env` and `lavalink/application.yml` before deploying.
 - Lavalink is not exposed on the host network by default; it communicates with the bot through the internal Docker network only.
 - Guild settings (e.g. volume) are persisted in `bot-source/data/guild-settings.json` and survive bot restarts.
+- Valorant sessions (auth tokens) are persisted in `bot-source/data/val-sessions.json`. This file is gitignored. Tokens auto-refresh via cookie reauth; users only need to re-login when cookies expire (typically weeks).

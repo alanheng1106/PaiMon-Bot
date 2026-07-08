@@ -5,13 +5,10 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('tts')
         .setDescription('使用 Google TTS 將文字轉語音並在語音頻道播放')
-        .addStringOption(option => 
-            option.setName('text')
-                .setDescription('要轉換為語音的文字')
-                .setRequired(true)
-        )
-        .addStringOption(option =>
-            option.setName('lang')
+        .addStringOption((option) => option.setName('text').setDescription('要轉換為語音的文字').setRequired(true))
+        .addStringOption((option) =>
+            option
+                .setName('lang')
                 .setDescription('語言代碼 (預設: zh-TW)')
                 .setRequired(false)
                 .addChoices(
@@ -28,12 +25,17 @@ module.exports = {
     cooldown: 5,
     helpText: '🔹 `/tts [文字] [語言]` - 將文字轉成語音並在語音頻道播放，支援繁中、英文、日文等多種語言',
     async execute(interaction, bot) {
+        await interaction.deferReply();
         const voiceChannel = interaction.member?.voice?.channel;
         if (!voiceChannel) return bot.sendError(interaction, '語音錯誤', '你必須先加入一個語音頻道！');
 
         const permissions = voiceChannel.permissionsFor(interaction.guild.members.me);
         if (!permissions.has(['Connect', 'Speak'])) {
-            return bot.sendError(interaction, '權限被拒絕', '我在此頻道缺少 `連線 (Connect)` 或 `說話 (Speak)` 的權限！');
+            return bot.sendError(
+                interaction,
+                '權限被拒絕',
+                '我在此頻道缺少 `連線 (Connect)` 或 `說話 (Speak)` 的權限！'
+            );
         }
 
         const botVoiceChannel = interaction.guild.members.me.voice.channel;
@@ -48,13 +50,11 @@ module.exports = {
             return bot.sendError(interaction, '字數過長', '文字不能超過 200 個字元！');
         }
 
-        await interaction.deferReply();
-
         try {
             const url = googleTTS.getAudioUrl(text, {
                 lang: lang,
                 slow: false,
-                host: 'https://translate.google.com',
+                host: 'https://translate.google.com'
             });
 
             const { tracks } = await bot.music.search(url);
@@ -67,9 +67,8 @@ module.exports = {
             track.info.author = `Language: ${lang}`;
 
             await bot.music.play(voiceChannel, interaction.channel, track, interaction.user, { isTTS: true });
-            
-            await bot.sendSuccess(interaction, '🗣️ 文字轉語音', `**內容：** ${text}\n**語言：** ${lang}`);
 
+            await bot.sendSuccess(interaction, '🗣️ 文字轉語音', `**內容：** ${text}\n**語言：** ${lang}`);
         } catch (error) {
             console.error('[TTS CMD]', error.message);
             bot.sendError(interaction, 'TTS 錯誤', 'TTS 處理時發生內部錯誤，請稍後再試。');

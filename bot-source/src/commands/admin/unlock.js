@@ -1,9 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField } = require('discord.js');
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('unlock')
-        .setDescription('解鎖當前頻道，恢復一般成員發言'),
+    data: new SlashCommandBuilder().setName('unlock').setDescription('解鎖當前頻道，恢復一般成員發言'),
     category: 'admin',
     helpText: '🔹 `/unlock` - 解鎖當前頻道，讓 @everyone 恢復正常發言權限',
     async execute(interaction, bot) {
@@ -16,15 +14,22 @@ module.exports = {
         }
 
         try {
-            await channel.permissionOverwrites.edit(interaction.guild.id, {
-                SendMessages: null, // null = inherit from role/default
-            }, { reason: `Unlocked by ${interaction.user.tag}` });
+            await channel.permissionOverwrites.edit(
+                interaction.guild.id,
+                {
+                    SendMessages: null // null = inherit from role/default
+                },
+                { reason: `Unlocked by ${interaction.user.tag}` }
+            );
 
-            await bot.sendSuccess(interaction, '🔓 頻道已解鎖',
-                `✅ **#${channel.name}** 已解鎖，成員可以重新正常發言。`);
+            await bot.sendSuccess(
+                interaction,
+                '🔓 頻道已解鎖',
+                `✅ **#${channel.name}** 已解鎖，成員可以重新正常發言。`
+            );
         } catch (err) {
             console.error('[Unlock CMD]', err);
             bot.sendError(interaction, '執行失敗', '解鎖頻道時發生內部錯誤，請確認機器人擁有 `管理頻道` 的權限。');
         }
-    },
+    }
 };

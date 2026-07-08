@@ -1,10 +1,8 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SectionBuilder, ThumbnailBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('nowplaying')
-        .setDescription('顯示當前正在播放的歌曲'),
+    data: new SlashCommandBuilder().setName('nowplaying').setDescription('顯示當前正在播放的歌曲'),
     category: 'music',
     helpText: '🔹 `/nowplaying` - 查看目前正在播放的歌曲資訊與播放進度',
     async execute(interaction, bot) {
@@ -14,20 +12,12 @@ module.exports = {
         const currentSong = queue.songs[0];
         const player = queue.player;
 
-        const embed = new EmbedBuilder()
-            .setColor(Colors.Primary)
-            .setTitle('▶️ 正在播放')
-            .setDescription(`**[${currentSong.title}](${currentSong.url})**`)
-            .setThumbnail(currentSong.thumbnail)
-            .addFields(
-                { name: '👤 歌手', value: currentSong.author, inline: true },
-                { name: '⏱️ 時長', value: bot.music.formatDuration(currentSong.duration), inline: true },
-                { name: '📥 點播者', value: `<@${currentSong.requester.id}>`, inline: true },
-                { name: '📊 播放進度', value: bot.music.createProgressBar(player.position, currentSong.duration), inline: false }
-            )
-            .setFooter({ text: `Requested by ${currentSong.requester.tag}` })
-            .setTimestamp();
+        const content = `### ▶️ 正在播放\n**[${currentSong.title}](${currentSong.url})**\n\n**👤 歌手**\n${currentSong.author}\n\n**⏱️ 時長**\n${bot.music.formatDuration(currentSong.duration)}\n\n**📥 點播者**\n<@${currentSong.requester.id}>\n\n**📊 播放進度**\n${bot.music.createProgressBar(player.position, currentSong.duration)}\n\nRequested by ${currentSong.requester.tag}`;
+        const text = new TextDisplayBuilder().setContent(content);
+        const thumbnail = new ThumbnailBuilder().setURL(currentSong.thumbnail);
+        const section = new SectionBuilder().addTextDisplayComponents(text).setThumbnailAccessory(thumbnail);
+        const container = new ContainerBuilder().setAccentColor(Colors.Primary).addSectionComponents(section);
 
-        await interaction.reply({ embeds: [embed] });
-    },
+        await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+    }
 };

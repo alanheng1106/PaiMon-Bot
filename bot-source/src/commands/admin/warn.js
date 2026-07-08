@@ -4,10 +4,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('warn')
         .setDescription('警告指定成員並記錄')
-        .addUserOption(option =>
-            option.setName('user').setDescription('要警告的成員').setRequired(true))
-        .addStringOption(option =>
-            option.setName('reason').setDescription('警告原因').setRequired(true))
+        .addUserOption((option) => option.setName('user').setDescription('要警告的成員').setRequired(true))
+        .addStringOption((option) => option.setName('reason').setDescription('警告原因').setRequired(true))
         .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
     category: 'admin',
     cooldown: 3,
@@ -21,7 +19,10 @@ module.exports = {
         if (user.id === interaction.user.id) return bot.sendError(interaction, '操作無效', '你不能警告你自己！');
         if (user.id === bot.user.id) return bot.sendError(interaction, '操作無效', '你不能警告我！');
 
-        if (interaction.member.roles.highest.position <= member.roles.highest.position && interaction.guild.ownerId !== interaction.user.id) {
+        if (
+            interaction.member.roles.highest.position <= member.roles.highest.position &&
+            interaction.guild.ownerId !== interaction.user.id
+        ) {
             return bot.sendError(interaction, '權限等級不足', `你最高的身分組低於或等於 **${user.tag}**，無法執行`);
         }
 
@@ -32,7 +33,7 @@ module.exports = {
         const newEntry = {
             reason,
             timestamp: new Date().toISOString(),
-            by: interaction.user.tag,
+            by: interaction.user.tag
         };
         userWarnings.push(newEntry);
         guildWarnings[user.id] = userWarnings;
@@ -41,11 +42,16 @@ module.exports = {
         const warnCount = userWarnings.length;
 
         // DM target (best effort)
-        await user.send(
-            `⚠️ 你在 **${interaction.guild.name}** 收到了一個警告（共 ${warnCount} 次）。\n📋 原因：\`${reason}\``
-        ).catch(() => {});
+        await user
+            .send(
+                `⚠️ 你在 **${interaction.guild.name}** 收到了一個警告（共 ${warnCount} 次）。\n📋 原因：\`${reason}\``
+            )
+            .catch((e) => console.warn('Ignored error:', e.message));
 
-        await bot.sendSuccess(interaction, '⚠️ 警告已記錄',
-            `✅ 已警告 **${user.tag}**\n📋 原因：\`${reason}\`\n📊 該成員目前累積 **${warnCount}** 次警告`);
-    },
+        await bot.sendSuccess(
+            interaction,
+            '⚠️ 警告已記錄',
+            `✅ 已警告 **${user.tag}**\n📋 原因：\`${reason}\`\n📊 該成員目前累積 **${warnCount}** 次警告`
+        );
+    }
 };

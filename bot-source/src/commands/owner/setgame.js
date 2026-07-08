@@ -4,9 +4,10 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('setgame')
         .setDescription('設定機器人遊玩狀態 (僅限擁有者)')
-        .addStringOption(option => option.setName('name').setDescription('狀態名稱').setRequired(true))
-        .addIntegerOption(option =>
-            option.setName('type')
+        .addStringOption((option) => option.setName('name').setDescription('狀態名稱').setRequired(true))
+        .addIntegerOption((option) =>
+            option
+                .setName('type')
                 .setDescription('活動類型')
                 .setRequired(true)
                 .addChoices(
@@ -14,7 +15,8 @@ module.exports = {
                     { name: '正在聽 (Listening)', value: ActivityType.Listening },
                     { name: '正在看 (Watching)', value: ActivityType.Watching },
                     { name: '競爭 (Competing)', value: ActivityType.Competing }
-                )),
+                )
+        ),
     category: 'owner',
     helpText: '🔹 `/setgame [狀態名稱] [類型]` - 設定機器人的活動狀態（僅限擁有者）',
     async execute(interaction, bot) {
@@ -35,5 +37,5 @@ module.exports = {
 
         bot.user.setActivity(name, { type });
         await bot.sendSuccess(interaction, '🎮 狀態更新成功', `✅ 標語已更新為活動類型 **${type}**: \`${name}\``, true);
-    },
+    }
 };

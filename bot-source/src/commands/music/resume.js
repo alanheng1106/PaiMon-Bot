@@ -1,10 +1,8 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('resume')
-        .setDescription('恢復播放暫停的歌曲'),
+    data: new SlashCommandBuilder().setName('resume').setDescription('恢復播放暫停的歌曲'),
     category: 'music',
     helpText: '🔹 `/resume` - 繼續播放暫停中的歌曲',
     async execute(interaction, bot) {
@@ -15,7 +13,11 @@ module.exports = {
         if (!botVoiceChannel) return bot.sendError(interaction, '操作無效', '我目前沒有在任何語音頻道中!');
 
         if (botVoiceChannel.id !== voiceChannel.id) {
-            return bot.sendError(interaction, '不在同一頻道', `你必須跟我（<#${botVoiceChannel.id}>）在同一個頻道才能恢復播放!`);
+            return bot.sendError(
+                interaction,
+                '不在同一頻道',
+                `你必須跟我（<#${botVoiceChannel.id}>）在同一個頻道才能恢復播放!`
+            );
         }
 
         const queue = bot.music.getQueue(interaction.guild.id);
@@ -23,13 +25,9 @@ module.exports = {
 
         bot.music.resume(interaction.guild.id);
 
-        const embed = new EmbedBuilder()
-            .setColor(Colors.Primary)
-            .setTitle('▶️ 恢復播放')
-            .setDescription('音樂播放已成功恢復')
-            .setTimestamp();
+        const text = new TextDisplayBuilder().setContent('### ▶️ 恢復播放\n音樂播放已成功恢復');
+        const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
 
-
-        await interaction.reply({ embeds: [embed] });
-    },
+        await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+    }
 };

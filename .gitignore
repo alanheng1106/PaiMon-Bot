@@ -10,3 +10,10 @@ lavalink/logs/
 *.gz
 
 *.jar
+
+# Valorant session data (contains auth tokens)
+val-sessions.json
+
+# Cookies
+cookies.txt
+bot-source/data/

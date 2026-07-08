@@ -1,19 +1,19 @@
-const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('purge')
         .setDescription('批量刪除頻道訊息')
-        .addIntegerOption(option =>
-            option.setName('amount')
+        .addIntegerOption((option) =>
+            option
+                .setName('amount')
                 .setDescription('要刪除的訊息數量 (1-100)')
                 .setRequired(true)
                 .setMinValue(1)
-                .setMaxValue(100))
-        .addUserOption(option =>
-            option.setName('user')
-                .setDescription('只刪除特定使用者的訊息（不填則刪除所有人）'))
+                .setMaxValue(100)
+        )
+        .addUserOption((option) => option.setName('user').setDescription('只刪除特定使用者的訊息（不填則刪除所有人）'))
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
     category: 'admin',
     cooldown: 5,
@@ -24,10 +24,14 @@ module.exports = {
 
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-        const replyEmbed = (color, title, description) =>
-            interaction.editReply({
-                embeds: [new EmbedBuilder().setColor(color).setTitle(title).setDescription(description).setTimestamp()]
+        const replyEmbed = (color, title, description) => {
+            const text = new TextDisplayBuilder().setContent(`### ${title}\n${description}`);
+            const container = new ContainerBuilder().setAccentColor(color).addTextDisplayComponents(text);
+            return interaction.editReply({
+                components: [container],
+                flags: MessageFlags.IsComponentsV2
             });
+        };
 
         try {
             // Fetch slightly more messages to account for per-user filtering
@@ -36,16 +40,20 @@ module.exports = {
 
             // Filter by user if specified
             let toDelete = targetUser
-                ? [...fetched.values()].filter(m => m.author.id === targetUser.id).slice(0, amount)
+                ? [...fetched.values()].filter((m) => m.author.id === targetUser.id).slice(0, amount)
                 : [...fetched.values()].slice(0, amount);
 
             // Discord bulk delete only works on messages < 14 days old
             const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
-            const validMessages = toDelete.filter(m => m.createdTimestamp > twoWeeksAgo);
+            const validMessages = toDelete.filter((m) => m.createdTimestamp > twoWeeksAgo);
             const skipped = toDelete.length - validMessages.length;
 
             if (validMessages.length === 0) {
-                return replyEmbed(Colors.Warning, '⚠️ 無可刪除訊息', '沒有可刪除的訊息。\n> 超過 14 天的訊息無法透過批量刪除清除。');
+                return replyEmbed(
+                    Colors.Warning,
+                    '⚠️ 無可刪除訊息',
+                    '沒有可刪除的訊息。\n> 超過 14 天的訊息無法透過批量刪除清除。'
+                );
             }
 
             const deleted = await interaction.channel.bulkDelete(validMessages, true);
@@ -55,10 +63,9 @@ module.exports = {
             if (skipped > 0) desc += `\n> ⚠️ 已略過 **${skipped}** 則超過 14 天的舊訊息`;
 
             await replyEmbed(Colors.Success, '🗑️ 清除完成', desc);
-
         } catch (err) {
             console.error('[Purge CMD]', err);
             replyEmbed(Colors.Error, '❌ 執行失敗', '刪除過程中發生錯誤，請確認機器人擁有 `管理訊息` 的權限。');
         }
-    },
+    }
 };

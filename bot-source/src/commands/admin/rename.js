@@ -4,14 +4,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('rename')
         .setDescription('變更成員暱稱')
-        .addUserOption(option =>
-            option.setName('user')
-                .setDescription('要變更暱稱的成員')
-                .setRequired(true))
-        .addStringOption(option =>
-            option.setName('nickname')
-                .setDescription('新暱稱')
-                .setRequired(true))
+        .addUserOption((option) => option.setName('user').setDescription('要變更暱稱的成員').setRequired(true))
+        .addStringOption((option) => option.setName('nickname').setDescription('新暱稱').setRequired(true))
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageNicknames),
     category: 'admin',
     helpText: '🔹 `/rename [成員] [新暱稱]` - 變更指定成員的伺服器暱稱',
@@ -26,10 +20,18 @@ module.exports = {
 
         // 1. Basic Identity Validation
         if (user.id === interaction.user.id) {
-            return bot.sendError(interaction, '操作無效', '你不能使用機器人指令來變更你自己的暱稱，請直接在 Discord 中修改');
+            return bot.sendError(
+                interaction,
+                '操作無效',
+                '你不能使用機器人指令來變更你自己的暱稱，請直接在 Discord 中修改'
+            );
         }
         if (user.id === bot.user.id) {
-            return bot.sendError(interaction, '操作無效', '我不建議變更我自己的鑑定暱稱! 如果需要，請在伺服器設定中手動修改');
+            return bot.sendError(
+                interaction,
+                '操作無效',
+                '我不建議變更我自己的鑑定暱稱! 如果需要，請在伺服器設定中手動修改'
+            );
         }
         if (user.id === interaction.guild.ownerId) {
             return bot.sendError(interaction, '權限受限', '你不能變更伺服器擁有者的暱稱! 這是伺服器最高權限的安全保護');
@@ -44,22 +46,37 @@ module.exports = {
         }
 
         // 3. Role hierarchy check (Caller vs Target)
-        if (interaction.member.roles.highest.position <= member.roles.highest.position && interaction.guild.ownerId !== interaction.user.id) {
-            return bot.sendError(interaction, '權限等級不足', `你最高的身分組 **[${interaction.member.roles.highest.name}]** 低於或等於 **${user.tag}**, 無法執行`);
+        if (
+            interaction.member.roles.highest.position <= member.roles.highest.position &&
+            interaction.guild.ownerId !== interaction.user.id
+        ) {
+            return bot.sendError(
+                interaction,
+                '權限等級不足',
+                `你最高的身分組 **[${interaction.member.roles.highest.name}]** 低於或等於 **${user.tag}**, 無法執行`
+            );
         }
 
         // 4. Bot hierarchy check
         if (!member.manageable) {
-            return bot.sendError(interaction, '權限溢位', `我無法管理此成員的暱稱! 請確保我的身分組在伺服器設定中高於 **${user.tag}**`);
+            return bot.sendError(
+                interaction,
+                '權限溢位',
+                `我無法管理此成員的暱稱! 請確保我的身分組在伺服器設定中高於 **${user.tag}**`
+            );
         }
 
         try {
             const oldNickname = member.displayName;
             await member.setNickname(nickname);
-            await bot.sendSuccess(interaction, '📝 暱稱變更成功', `✅ 已將 **${user.tag}** 的暱稱從 \`${oldNickname}\` 更改為 \`${nickname}\``);
+            await bot.sendSuccess(
+                interaction,
+                '📝 暱稱變更成功',
+                `✅ 已將 **${user.tag}** 的暱稱從 \`${oldNickname}\` 更改為 \`${nickname}\``
+            );
         } catch (err) {
             console.error('[Rename CMD]', err);
             bot.sendError(interaction, '執行失敗', '更改暱稱時發生內部錯誤，請稍後再試。');
         }
-    },
+    }
 };

@@ -14,6 +14,8 @@ services:
     depends_on:
       lavalink:
         condition: service_healthy
+    volumes:
+      - ./bot-source/data:/usr/src/app/data
     networks:
       - internal_network
 

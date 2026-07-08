@@ -4,13 +4,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('kick')
         .setDescription('踢出伺服器')
-        .addUserOption(option =>
-            option.setName('user')
-                .setDescription('要踢出的成員')
-                .setRequired(true))
-        .addStringOption(option =>
-            option.setName('reason')
-                .setDescription('踢出原因'))
+        .addUserOption((option) => option.setName('user').setDescription('要踢出的成員').setRequired(true))
+        .addStringOption((option) => option.setName('reason').setDescription('踢出原因'))
         .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
     category: 'admin',
     cooldown: 5,
@@ -36,17 +31,30 @@ module.exports = {
         }
 
         // 2. Role hierarchy check (Caller vs Target)
-        if (interaction.member.roles.highest.position <= member.roles.highest.position && interaction.guild.ownerId !== interaction.user.id) {
-            return bot.sendError(interaction, '權限等級不足', `你最高的身分組 **[${interaction.member.roles.highest.name}]** 低於或等於 **${user.tag}**, 無法執行`);
+        if (
+            interaction.member.roles.highest.position <= member.roles.highest.position &&
+            interaction.guild.ownerId !== interaction.user.id
+        ) {
+            return bot.sendError(
+                interaction,
+                '權限等級不足',
+                `你最高的身分組 **[${interaction.member.roles.highest.name}]** 低於或等於 **${user.tag}**, 無法執行`
+            );
         }
 
         // 3. Bot hierarchy check
         if (!member.kickable) {
-            return bot.sendError(interaction, '權限溢位', `我無法踢出此成員! 請確保我的身分組在伺服器設定中高於 **${user.tag}**`);
+            return bot.sendError(
+                interaction,
+                '權限溢位',
+                `我無法踢出此成員! 請確保我的身分組在伺服器設定中高於 **${user.tag}**`
+            );
         }
 
         // 4. DM the target before kicking (best effort)
-        await user.send(`⚠️ 你已被 **${interaction.guild.name}** 踢出。\n📋 原因：\`${reason}\``).catch(() => {});
+        await user
+            .send(`⚠️ 你已被 **${interaction.guild.name}** 踢出。\n📋 原因：\`${reason}\``)
+            .catch((e) => console.warn('Ignored error:', e.message));
 
         try {
             await member.kick(`By ${interaction.user.tag}: ${reason}`);
@@ -55,5 +63,5 @@ module.exports = {
             console.error('[Kick CMD]', err);
             bot.sendError(interaction, '執行失敗', '踢出過程中發生內部錯誤，請稍後再試。');
         }
-    },
+    }
 };

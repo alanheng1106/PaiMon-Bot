@@ -1,10 +1,8 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SectionBuilder, ThumbnailBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('queue')
-        .setDescription('查看當前播放列表'),
+    data: new SlashCommandBuilder().setName('queue').setDescription('查看當前播放列表'),
     category: 'music',
     helpText: '🔹 `/queue` - 顯示目前播放佇列（最多顯示 10 首）與紽計資訊',
     async execute(interaction, bot) {
@@ -15,28 +13,28 @@ module.exports = {
         const songs = queue.songs;
         const totalDurationMs = songs.reduce((acc, s) => acc + (s.duration || 0), 0);
 
-        const trackList = songs.slice(0, 10).map((s, i) => {
-            const timeStr = bot.music.formatDuration(s.duration);
-            const title = s.title.length > 50 ? s.title.slice(0, 47) + '...' : s.title;
-            const prefix = i === 0 ? '▶️ **[正在播放]**' : `**${i}.**`;
-            return `${prefix} ${title} \`[${timeStr}]\` - <@${s.requester.id}>`;
-        }).join('\n');
+        const trackList = songs
+            .slice(0, 10)
+            .map((s, i) => {
+                const timeStr = bot.music.formatDuration(s.duration);
+                const title = s.title.length > 50 ? s.title.slice(0, 47) + '...' : s.title;
+                const prefix = i === 0 ? '▶️ **[正在播放]**' : `**${i}.**`;
+                return `${prefix} ${title} \`[${timeStr}]\` - <@${s.requester.id}>`;
+            })
+            .join('\n');
 
-        const embed = new EmbedBuilder()
-            .setColor(Colors.Primary)
-            .setTitle('🎶 當前播放清單')
-            .setThumbnail(currentSong.thumbnail)
-            .setDescription(trackList)
-            .addFields(
-                { name: '📊 統計資料', value: `總共: **${songs.length}** 首歌 | 總時長: **${bot.music.formatDuration(totalDurationMs)}**`, inline: false }
-            )
-            .setTimestamp();
-
-
+        let footerText = '';
         if (songs.length > 10) {
-            embed.setFooter({ text: `以及還有 ${songs.length - 10} 首歌曲...` });
+            footerText = `\n\n以及還有 ${songs.length - 10} 首歌曲...`;
         }
 
-        await interaction.reply({ embeds: [embed] });
-    },
+        const content = `### 🎶 當前播放清單\n${trackList}\n\n**📊 統計資料**\n總共: **${songs.length}** 首歌 | 總時長: **${bot.music.formatDuration(totalDurationMs)}**${footerText}`;
+        
+        const text = new TextDisplayBuilder().setContent(content);
+        const thumbnail = new ThumbnailBuilder().setURL(currentSong.thumbnail);
+        const section = new SectionBuilder().addTextDisplayComponents(text).setThumbnailAccessory(thumbnail);
+        const container = new ContainerBuilder().setAccentColor(Colors.Primary).addSectionComponents(section);
+
+        await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+    }
 };

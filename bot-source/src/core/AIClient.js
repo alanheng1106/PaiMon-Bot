@@ -1,6 +1,6 @@
-const { HfInference } = require("@huggingface/inference");
-const { Ollama } = require("ollama");
-const { LRUCache } = require("lru-cache");
+const { HfInference } = require('@huggingface/inference');
+const { Ollama } = require('ollama');
+const { LRUCache } = require('lru-cache');
 
 class AIClient {
     constructor() {
@@ -12,7 +12,7 @@ class AIClient {
             this.hf = new HfInference(process.env.HF_TOKEN);
         }
 
-	    // Initialize Ollama Cloud Client
+        // Initialize Ollama Cloud Client
         if (!process.env.OLLAMA_API_KEY) {
             console.warn('[AI] OLLAMA_API_KEY is not set. Cloud models will not work.');
             this.ollamaClient = null;
@@ -32,7 +32,7 @@ class AIClient {
         // Memory Leak Prevention: Use LRU Cache instead of a standard Map
         this.chats = new LRUCache({
             max: 100, // Maximum 100 active conversation channels in memory
-            ttl: 1000 * 60 * 60 * 2, // Clear history after 2 hours of inactivity
+            ttl: 1000 * 60 * 60 * 2 // Clear history after 2 hours of inactivity
         });
 
         this.cacheSize = 20;
@@ -78,7 +78,7 @@ class AIClient {
     }
 
     get ready() {
-        return true;
+        return !!this.ollamaClient || !!this.hf;
     }
 
     get imageReady() {
@@ -132,7 +132,7 @@ class AIClient {
 
     async _webSearch(query) {
         const key = process.env.SERPER_API_KEY;
-        if (!key) return "Error: SERPER_API_KEY is not configured in .env.";
+        if (!key) return 'Error: SERPER_API_KEY is not configured in .env.';
 
         try {
             const response = await fetch('https://google.serper.dev/search', {
@@ -145,10 +145,13 @@ class AIClient {
             });
             const data = await response.json();
 
-            if (!data.organic || data.organic.length === 0) return "No results found on the web.";
+            if (!data.organic || data.organic.length === 0) return 'No results found on the web.';
 
             // Token Optimization: Format top 4 results instead of 8
-            return data.organic.slice(0, 4).map(item => `[${item.title}] ${item.snippet}`).join('\n\n');
+            return data.organic
+                .slice(0, 4)
+                .map((item) => `[${item.title}] ${item.snippet}`)
+                .join('\n\n');
         } catch (error) {
             return `Search failed: ${error.message}`;
         }
@@ -182,21 +185,21 @@ class AIClient {
             let finalReplyText = '';
 
             // Determine which model to use
-            const hasImages = history.some(m => m.images && m.images.length > 0);
+            const hasImages = history.some((m) => m.images && m.images.length > 0);
             const currentModel = hasImages ? this.visionModel : this.model;
 
             // Main loop (handles tool calls dynamically)
             while (true) {
-                if (!this.ollamaClient) throw new Error("Ollama Client is not initialized. Missing API Key.");
+                if (!this.ollamaClient) throw new Error('Ollama Client is not initialized. Missing API Key.');
 
                 const responseStream = await this.ollamaClient.chat({
                     model: currentModel,
                     messages: history,
                     tools: this.tools,
-                    stream: true 
+                    stream: true
                 });
 
-                let currentContent = "";
+                let currentContent = '';
                 let toolCalls = [];
 
                 // Process the stream chunk by chunk
@@ -226,9 +229,12 @@ class AIClient {
                     for (const toolCall of toolCalls) {
                         if (toolCall.function.name === 'get_current_time') {
                             const now = new Date().toLocaleString('zh-TW', { hour12: false });
-                            history.push({ role: 'tool', name: toolCall.function.name, content: `當前系統時間：${now}` });
-                        }
-                        else if (toolCall.function.name === 'web_search') {
+                            history.push({
+                                role: 'tool',
+                                name: toolCall.function.name,
+                                content: `當前系統時間：${now}`
+                            });
+                        } else if (toolCall.function.name === 'web_search') {
                             const { query } = toolCall.function.arguments;
 
                             // Let the user know the bot is doing a web search
@@ -248,7 +254,6 @@ class AIClient {
             }
 
             return finalReplyText;
-
         } catch (error) {
             console.error('[AIClient] Ollama Error:', error.message);
             this.chats.delete(channelId);

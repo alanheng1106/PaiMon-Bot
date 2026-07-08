@@ -4,12 +4,8 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('unban')
         .setDescription('解除封鎖指定的使用者')
-        .addStringOption(option =>
-            option.setName('userid')
-                .setDescription('要解封的使用者 ID')
-                .setRequired(true))
-        .addStringOption(option =>
-            option.setName('reason').setDescription('解封原因'))
+        .addStringOption((option) => option.setName('userid').setDescription('要解封的使用者 ID').setRequired(true))
+        .addStringOption((option) => option.setName('reason').setDescription('解封原因'))
         .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
     category: 'admin',
     helpText: '🔹 `/unban [使用者ID] [原因]` - 解除封鎖已被 ban 的使用者（需輸入使用者 ID）',
@@ -19,7 +15,11 @@ module.exports = {
 
         // Validate that it looks like a Discord snowflake ID
         if (!/^\d{17,20}$/.test(userId)) {
-            return bot.sendError(interaction, '格式錯誤', '請輸入有效的 Discord 使用者 ID（17-20 位數字）。\n> 在 Discord 中開啟開發者模式，右鍵點擊使用者即可複製 ID。');
+            return bot.sendError(
+                interaction,
+                '格式錯誤',
+                '請輸入有效的 Discord 使用者 ID（17-20 位數字）。\n> 在 Discord 中開啟開發者模式，右鍵點擊使用者即可複製 ID。'
+            );
         }
 
         // Verify they are actually banned
@@ -30,11 +30,14 @@ module.exports = {
 
         try {
             await interaction.guild.members.unban(userId, `By ${interaction.user.tag}: ${reason}`);
-            await bot.sendSuccess(interaction, '✅ 解封成功',
-                `✅ 已成功解除封鎖 **${banEntry.user.tag}**\n📋 原因：\`${reason}\``);
+            await bot.sendSuccess(
+                interaction,
+                '✅ 解封成功',
+                `✅ 已成功解除封鎖 **${banEntry.user.tag}**\n📋 原因：\`${reason}\``
+            );
         } catch (err) {
             console.error('[Unban CMD]', err);
             bot.sendError(interaction, '執行失敗', '解封過程中發生內部錯誤，請稍後再試。');
         }
-    },
+    }
 };

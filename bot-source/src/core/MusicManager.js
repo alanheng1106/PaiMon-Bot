@@ -1,5 +1,5 @@
 const { Shoukaku, Connectors } = require('shoukaku');
-const { EmbedBuilder } = require('discord.js');
+const { ContainerBuilder, TextDisplayBuilder, SectionBuilder, ThumbnailBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../config');
 
 class MusicManager {
@@ -11,12 +11,14 @@ class MusicManager {
         const host = process.env.LAVALINK_HOST || 'lavalink';
         const port = process.env.LAVALINK_PORT || '2333';
 
-        const nodes = [{
-            name: 'Docker-Lavalink',
-            url: `${host}:${port}`,
-            auth: process.env.LAVALINK_PASSWORD || 'youshallnotpass', // Also ensure this matches your .env variable name!
-            secure: process.env.LAVALINK_SECURE === 'true'
-        }];
+        const nodes = [
+            {
+                name: 'Docker-Lavalink',
+                url: `${host}:${port}`,
+                auth: process.env.LAVALINK_PASSWORD || 'youshallnotpass', // Also ensure this matches your .env variable name!
+                secure: process.env.LAVALINK_SECURE === 'true'
+            }
+        ];
 
         this.shoukaku = new Shoukaku(new Connectors.DiscordJS(this.bot), nodes, {
             moveOnDisconnect: true,
@@ -35,8 +37,9 @@ class MusicManager {
         const searchUrl = query.startsWith('http') ? query : `ytsearch:${query}`;
         const result = await node.rest.resolve(searchUrl);
 
-
-        if (!result?.data) return { isPlaylist: false, tracks: [] };
+        if (!result || result.loadType === 'empty' || result.loadType === 'error' || !result.data) {
+            return { isPlaylist: false, tracks: [] };
+        }
         if (result.loadType === 'playlist') {
             return { isPlaylist: true, name: result.data.info.name, tracks: result.data.tracks };
         }
@@ -74,7 +77,10 @@ class MusicManager {
             };
 
             player.on('end', next);
-            player.on('error', (err) => { console.error('[Play Error]', err); next(); });
+            player.on('error', (err) => {
+                console.error('[Play Error]', err);
+                next();
+            });
             player.on('closed', () => this.queues.delete(guild.id));
 
             this.queues.set(guild.id, { player, songs: [], textChannel, loop: 'none' });
@@ -94,10 +100,9 @@ class MusicManager {
 
         if (!queue.songs.length) {
             if (!queue.lastSongIsTTS) {
-                const embed = new EmbedBuilder()
-                    .setColor(Colors.Primary)
-                    .setDescription('🎶 播放佇列已結束');
-                queue.textChannel?.send({ embeds: [embed] }).catch(() => { });
+                const text = new TextDisplayBuilder().setContent('🎶 播放佇列已結束');
+                const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
+                queue.textChannel?.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
             }
             return;
         }
@@ -110,11 +115,9 @@ class MusicManager {
             }
             // Suppress now-playing embed for TTS, resume, or track loop repeats
             if (!song.isTTS && !song.resumePosition && queue.loop !== 'track') {
-                const embed = new EmbedBuilder()
-                    .setColor(Colors.Primary)
-                    .setTitle('▶️ 正在播放')
-                    .setDescription(`[${song.title}](${song.url}) - *${song.author}*`);
-                queue.textChannel?.send({ embeds: [embed] }).catch(() => { });
+                const text = new TextDisplayBuilder().setContent(`### ▶️ 正在播放\n[${song.title}](${song.url}) - ${song.author}`);
+                const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
+                queue.textChannel?.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
             }
         } catch {
             queue.songs.shift();
@@ -156,19 +159,13 @@ class MusicManager {
 
         if (wasEmpty) await this.processQueue(voiceChannel.guild.id);
         else if (!options.isTTS) {
-            const embed = new EmbedBuilder()
-                .setColor(Colors.Primary)
-                .setTitle('✅ 已加入播放佇列')
-                .setDescription(`[${track.info.title}](${track.info.uri})`)
-                .setThumbnail(track.info.artworkUrl || `https://img.youtube.com/vi/${track.info.identifier}/hqdefault.jpg`)
-                .addFields(
-                    { name: '👤 歌手', value: track.info.author, inline: true },
-                    { name: '⏱️ 時長', value: this.formatDuration(track.info.length), inline: true },
-                    { name: '🔢 佇列位置', value: `${queue.songs.length}`, inline: true }
-                )
-                .setFooter({ text: `由 ${user.tag} 點播`, iconURL: user.displayAvatarURL() });
+            const content = `### ✅ 已加入播放佇列\n[${track.info.title}](${track.info.uri})\n\n**👤 歌手**\n${track.info.author}\n\n**⏱️ 時長**\n${this.formatDuration(track.info.length)}\n\n**🔢 佇列位置**\n${queue.songs.length}\n\n由 ${user.tag} 點播`;
+            const text = new TextDisplayBuilder().setContent(content);
+            const thumbnail = new ThumbnailBuilder().setURL(track.info.artworkUrl || `https://img.youtube.com/vi/${track.info.identifier}/hqdefault.jpg`);
+            const section = new SectionBuilder().addTextDisplayComponents(text).setThumbnailAccessory(thumbnail);
+            const container = new ContainerBuilder().setAccentColor(Colors.Primary).addSectionComponents(section);
 
-            textChannel.send({ embeds: [embed] }).catch(() => { });
+            textChannel.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
         }
     }
 
@@ -176,27 +173,23 @@ class MusicManager {
         const queue = await this._ensureSession(voiceChannel.guild, voiceChannel.id, textChannel);
         const wasEmpty = !queue.songs.length;
 
-        tracks.forEach(t => queue.songs.push({
-            title: t.info.title,
-            author: t.info.author,
-            url: t.info.uri,
-            encoded: t.encoded,
-            duration: t.info.length,
-            thumbnail: t.info.artworkUrl || `https://img.youtube.com/vi/${t.info.identifier}/hqdefault.jpg`,
-            requester: { tag: user.tag, id: user.id }
-        }));
+        tracks.forEach((t) =>
+            queue.songs.push({
+                title: t.info.title,
+                author: t.info.author,
+                url: t.info.uri,
+                encoded: t.encoded,
+                duration: t.info.length,
+                thumbnail: t.info.artworkUrl || `https://img.youtube.com/vi/${t.info.identifier}/hqdefault.jpg`,
+                requester: { tag: user.tag, id: user.id }
+            })
+        );
 
-        const embed = new EmbedBuilder()
-            .setColor(Colors.Primary)
-            .setTitle('📖 已加載整個播放清單')
-            .setDescription(`**${playlistName}**`)
-            .addFields(
-                { name: '🎶 歌曲數量', value: `${tracks.length} 首`, inline: true },
-                { name: '👤 點播者', value: user.tag, inline: true }
-            )
-            .setFooter({ text: `Requested by ${user.tag}`, iconURL: user.displayAvatarURL() });
+        const content = `### 📖 已加載整個播放清單\n**${playlistName}**\n\n**🎶 歌曲數量**\n${tracks.length} 首\n\n**👤 點播者**\n${user.tag}\n\nRequested by ${user.tag}`;
+        const text = new TextDisplayBuilder().setContent(content);
+        const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
 
-        textChannel.send({ embeds: [embed] }).catch(() => { });
+        textChannel.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
         if (wasEmpty) await this.processQueue(voiceChannel.guild.id);
     }
 
@@ -225,12 +218,29 @@ class MusicManager {
         return `\`${this.formatDuration(current)}\` [${progressText}🔘${emptyProgressText}] \`${this.formatDuration(total)}\``;
     }
 
-    getQueue(guildId) { return this.queues.get(guildId); }
-    stop(guildId) { const q = this.queues.get(guildId); if (q) { q.songs = []; q.loop = 'none'; q.player.stopTrack(); } }
-    skip(guildId) { this.queues.get(guildId)?.player?.stopTrack(); }
-    pause(guildId) { this.queues.get(guildId)?.player?.setPaused(true); }
-    resume(guildId) { this.queues.get(guildId)?.player?.setPaused(false); }
-    setVolume(guildId, volume) { this.queues.get(guildId)?.player?.setGlobalVolume(volume); }
+    getQueue(guildId) {
+        return this.queues.get(guildId);
+    }
+    stop(guildId) {
+        const q = this.queues.get(guildId);
+        if (q) {
+            q.songs = [];
+            q.loop = 'none';
+            q.player.stopTrack();
+        }
+    }
+    skip(guildId) {
+        this.queues.get(guildId)?.player?.stopTrack();
+    }
+    pause(guildId) {
+        this.queues.get(guildId)?.player?.setPaused(true);
+    }
+    resume(guildId) {
+        this.queues.get(guildId)?.player?.setPaused(false);
+    }
+    setVolume(guildId, volume) {
+        this.queues.get(guildId)?.player?.setGlobalVolume(volume);
+    }
 
     async join(voiceChannel, textChannel) {
         return await this._ensureSession(voiceChannel.guild, voiceChannel.id, textChannel);
@@ -240,7 +250,6 @@ class MusicManager {
         this.shoukaku.leaveVoiceChannel(guildId);
         this.queues.delete(guildId);
     }
-
 }
 
 module.exports = MusicManager;
