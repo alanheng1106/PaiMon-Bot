@@ -115,9 +115,8 @@ class MusicManager {
             if (song.resumePosition) {
                 await queue.player.seekTo(song.resumePosition);
             }
-            // Suppress now-playing embed for TTS, resume, or track loop repeats
             if (!song.isTTS && !song.resumePosition && queue.loop !== 'track') {
-                const content = `**${song.title}**\n\n**🎤 歌手**\n${song.author}\n\n**⏱️ 時長**\n${this.formatDuration(song.duration)}\n\n**👤 點播者**\n<@${song.requester.id}>\n\n**🔊 語音頻道**\n<#${queue.voiceChannelId}>`;
+                const content = `**🎵 歌名**\n${song.title}\n\n**🎤 歌手**\n${song.author}\n\n**⏱️ 時長**\n${this.formatDuration(song.duration)}\n\n**👤 點播者**\n<@${song.requester.id}>\n\n**🔊 語音頻道**\n<#${queue.voiceChannelId}>`;
                 
                 const container = new ContainerBuilder()
                     .setAccentColor(Colors.Primary)
