@@ -11,11 +11,11 @@ const {
 const { Colors } = require('../../config');
 
 const CATEGORY_META = {
-    music: { label: '音樂模組 (Music)', emoji: '🎶', description: '音樂播放與控制相關指令' },
-    admin: { label: '管理工具 (Admin)', emoji: '⚔️', description: '伺服器與成員管理指令' },
-    owner: { label: '擁有者工具 (Owner)', emoji: '👑', description: '機器人擁有者專屬指令' },
-    general: { label: '核心系統 (General)', emoji: '⚙️', description: '基礎功能與狀態查詢指令' },
-    valorant: { label: '特戰英豪 (Valorant)', emoji: '🎮', description: 'Valorant 每日商店查詢' }
+    music: { label: '音樂模組 (Music)', emoji: '<a:check:1524601509772529665>', description: '音樂播放與控制相關指令' },
+    admin: { label: '管理工具 (Admin)', emoji: '<a:check:1524601509772529665>', description: '伺服器與成員管理指令' },
+    owner: { label: '擁有者工具 (Owner)', emoji: '<a:check:1524601509772529665>', description: '機器人擁有者專屬指令' },
+    general: { label: '核心系統 (General)', emoji: '<a:check:1524601509772529665>', description: '基礎功能與狀態查詢指令' },
+    valorant: { label: '特戰英豪 (Valorant)', emoji: '<a:check:1524601509772529665>', description: 'Valorant 每日商店查詢' }
 };
 
 module.exports = {
@@ -31,7 +31,7 @@ module.exports = {
             const content = `歡迎使用指令手冊！請從下方選單選擇想了解的類別。\n\n**可用類別：**\n${categoryList}`;
             return new ContainerBuilder()
                 .setAccentColor(Colors.Primary)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 📖 指令手冊 - 首頁`))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 指令手冊 - 首頁`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
         };
@@ -61,7 +61,7 @@ module.exports = {
             .setCustomId('help_menu')
             .setPlaceholder('點擊這裡選擇指令類別...')
             .addOptions([
-                { label: '首頁 (Home)', description: '回到指令手冊首頁', value: 'home', emoji: '🏠' },
+                { label: '首頁 (Home)', description: '回到指令手冊首頁', value: 'home', emoji: '<a:check:1524601509772529665>' },
                 ...Object.entries(CATEGORY_META).map(([key, meta]) => ({
                     label: meta.label,
                     description: meta.description,

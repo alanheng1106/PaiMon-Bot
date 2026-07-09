@@ -32,7 +32,7 @@ module.exports = {
         
         const thumbnail = new ThumbnailBuilder().setURL(currentSong.thumbnail);
         const section = new SectionBuilder()
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🎶 當前播放清單`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 當前播放清單`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
             .setThumbnailAccessory(thumbnail);

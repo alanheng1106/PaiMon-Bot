@@ -55,7 +55,7 @@ module.exports = {
         const row = new ActionRowBuilder().addComponents(selectMenu);
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Valorant)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent('### 🎮 選擇帳號'))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 選擇帳號'))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent('你有多個已登入的 Riot 帳號，請選擇要查詢的帳號：'));
 
@@ -78,7 +78,7 @@ module.exports = {
         } catch {
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Warning)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ⏳ 操作逾時'))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 操作逾時'))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent('未在時間內選擇帳號，請重新使用 `/store`。'));
             await interaction
@@ -98,7 +98,7 @@ module.exports = {
             if (!session) {
                 const container = new ContainerBuilder()
                     .setAccentColor(Colors.Error)
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🔒 Session 已過期`))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> Session 已過期`))
                     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`帳號 **${riotId}** 的登入已過期，請重新使用 \`/login\` 登入。`));
 
@@ -113,7 +113,7 @@ module.exports = {
             if (!skinUuids || skinUuids.length === 0) {
                 const container = new ContainerBuilder()
                     .setAccentColor(Colors.Warning)
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ⚠️ 商店資料異常'))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 商店資料異常'))
                     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                     .addTextDisplayComponents(new TextDisplayBuilder().setContent('無法取得每日商店資料，請稍後再試。'));
                 
@@ -147,7 +147,7 @@ module.exports = {
             const mediaGallery = new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://store.png'));
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Valorant)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🎮 ${riotId} 的每日商店`))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> ${riotId} 的每日商店`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addMediaGalleryComponents(mediaGallery);
 

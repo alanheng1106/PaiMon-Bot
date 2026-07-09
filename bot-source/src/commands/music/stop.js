@@ -24,7 +24,7 @@ module.exports = {
 
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Primary)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ⏹️ 停止播放'))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 停止播放'))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent('播放已停止且佇列已清空'));
 

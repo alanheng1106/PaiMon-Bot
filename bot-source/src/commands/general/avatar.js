@@ -29,7 +29,7 @@ module.exports = {
 
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Primary)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🖼️ ${targetUser.tag} 的大頭貼`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> ${targetUser.tag} 的大頭貼`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addMediaGalleryComponents(
                 new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(avatarUrl))

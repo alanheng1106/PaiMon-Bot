@@ -22,7 +22,7 @@ module.exports = {
         if (!sessions) {
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Warning)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ℹ️ 無需登出'))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 無需登出'))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent('你目前沒有任何已登入的 Riot 帳號。'));
             return interaction.reply({ components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
@@ -35,7 +35,7 @@ module.exports = {
             bot.valorant.removeSession(userId, riotIds[0]);
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Success)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 👋 已登出`))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已登出`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`已成功登出 **${riotIds[0]}**`));
             return interaction.reply({ components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
@@ -64,7 +64,7 @@ module.exports = {
         const row = new ActionRowBuilder().addComponents(selectMenu);
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Valorant)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 👋 選擇要登出的帳號`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 選擇要登出的帳號`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`你目前有 **${riotIds.length}** 個已登入的帳號：\n${riotIds.map((id) => `• ${id}`).join('\n')}`));
 
@@ -87,7 +87,7 @@ module.exports = {
                 bot.valorant.removeAllSessions(userId);
                 const container = new ContainerBuilder()
                     .setAccentColor(Colors.Success)
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🗑️ 已全部登出`))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已全部登出`))
                     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`已成功登出所有 **${riotIds.length}** 個帳號。`));
                 await selection.update({ components: [container], flags: MessageFlags.IsComponentsV2 });
@@ -95,7 +95,7 @@ module.exports = {
                 bot.valorant.removeSession(userId, selected);
                 const container = new ContainerBuilder()
                     .setAccentColor(Colors.Success)
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 👋 已登出`))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已登出`))
                     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`已成功登出 **${selected}**`));
                 await selection.update({ components: [container], flags: MessageFlags.IsComponentsV2 });
@@ -103,7 +103,7 @@ module.exports = {
         } catch {
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Warning)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ⏳ 操作逾時'))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 操作逾時'))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent('未在時間內選擇，請重新使用 `/logout`。'));
             await interaction

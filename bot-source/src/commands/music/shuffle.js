@@ -36,7 +36,7 @@ module.exports = {
 
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Primary)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🔀 佇列已打亂`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 佇列已打亂`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`<a:check:1524601509772529665> 已隨機打亂 **${rest.length}** 首歌曲的播放順序`));
 

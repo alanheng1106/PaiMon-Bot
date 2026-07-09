@@ -25,7 +25,7 @@ module.exports = {
 
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Primary)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🤖 系統資訊`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 系統資訊`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addSectionComponents(
                 new SectionBuilder()

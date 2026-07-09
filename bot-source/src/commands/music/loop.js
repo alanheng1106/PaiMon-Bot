@@ -34,7 +34,7 @@ module.exports = {
         const modeText = modeLabels[nextMode];
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Primary)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🔁 循環模式已更改`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 循環模式已更改`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`當前循環模式：**${modeText}**`));
 

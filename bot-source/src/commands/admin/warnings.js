@@ -32,7 +32,7 @@ module.exports = {
         const content = `${warnLines}\n\n共 ${userWarnings.length} 次警告${userWarnings.length > 10 ? '（僅顯示最近 10 次）' : ''}`;
         const thumbnail = new ThumbnailBuilder().setURL(user.displayAvatarURL());
         const section = new SectionBuilder()
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ⚠️ 警告記錄 — ${user.tag}`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 警告記錄 — ${user.tag}`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
             .setThumbnailAccessory(thumbnail);

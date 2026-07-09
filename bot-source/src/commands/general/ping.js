@@ -22,7 +22,7 @@ module.exports = {
         const content = `**📡 網關連線 (WebSocket)**\n\`${apiLatency}ms\`\n\n**🌐 核心回應 (Roundtrip)**\n\`${latency}ms\``;
         const container = new ContainerBuilder()
             .setAccentColor(color)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🏓 系統延遲回報`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 系統延遲回報`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
 

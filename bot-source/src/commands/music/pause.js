@@ -27,7 +27,7 @@ module.exports = {
 
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Primary)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ⏸️ 播放暫停'))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 播放暫停'))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent('音樂播放已成功暫停'));
 

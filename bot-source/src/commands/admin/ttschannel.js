@@ -52,7 +52,7 @@ module.exports = {
 
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Success)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🗣️ 自動 TTS 頻道已設定`))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 自動 TTS 頻道已設定`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`<a:check:1524601509772529665> 已將 <#${channel.id}> 設為自動語音頻道。\n**語言**：\`${lang}\``));
 
@@ -62,7 +62,7 @@ module.exports = {
 
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Success)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### 🗣️ 自動 TTS 頻道已解除'))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 自動 TTS 頻道已解除'))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent('<a:check:1524601509772529665> 伺服器已解除綁定自動語音頻道。'));
 

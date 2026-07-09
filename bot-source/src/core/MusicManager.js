@@ -102,7 +102,7 @@ class MusicManager {
             if (!queue.lastSongIsTTS) {
                 const container = new ContainerBuilder()
                     .setAccentColor(Colors.Primary)
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('### 🎶 播放佇列已結束'))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 播放佇列已結束'))
                     .addSeparatorComponents(new SeparatorBuilder().setDivider(true));
                 queue.textChannel?.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
             }
@@ -119,7 +119,7 @@ class MusicManager {
             if (!song.isTTS && !song.resumePosition && queue.loop !== 'track') {
                 const container = new ContainerBuilder()
                     .setAccentColor(Colors.Primary)
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ▶️ 正在播放`))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 正在播放`))
                     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**${song.title}** - ${song.author}`))
                     .addActionRowComponents(
@@ -212,7 +212,7 @@ class MusicManager {
         const content = `**${playlistName}**\n\n**🎶 歌曲數量**\n${tracks.length} 首\n\n**👤 點播者**\n${user.tag}\n\nRequested by ${user.tag}`;
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Primary)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 📖 已加載整個播放清單`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已加載整個播放清單`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
 
