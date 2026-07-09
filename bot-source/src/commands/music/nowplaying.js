@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, ThumbnailBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
+const { getAverageColor } = require('fast-average-color-node');
 
 module.exports = {
     data: new SlashCommandBuilder().setName('nowplaying').setDescription('顯示當前正在播放的歌曲'),
@@ -12,17 +13,27 @@ module.exports = {
         const currentSong = queue.songs[0];
         const player = queue.player;
 
-        const content = `**${currentSong.title}**\n\n**👤 歌手**\n${currentSong.author}\n\n**⏱️ 時長**\n${bot.music.formatDuration(currentSong.duration)}\n\n**📥 點播者**\n<@${currentSong.requester.id}>\n\n**📊 播放進度**\n${bot.music.createProgressBar(player.position, currentSong.duration)}\n\nRequested by ${currentSong.requester.tag}`;
-        const thumbnail = new ThumbnailBuilder().setURL(currentSong.thumbnail);
-        const section = new SectionBuilder()
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 正在播放`))
-            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
-            .setThumbnailAccessory(thumbnail);
-            
+        const content = `**🎵 歌名**\n${currentSong.title}\n\n**🎤 歌手**\n${currentSong.author}\n\n**⏱️ 時長**\n${bot.music.formatDuration(currentSong.duration)}\n\n**👤 點播者**\n<@${currentSong.requester.id}>\n\n**🔊 語音頻道**\n<#${queue.voiceChannelId}>\n\n**📊 播放進度**\n${bot.music.createProgressBar(player.position, currentSong.duration)}`;
+        
+        let accentColor = Colors.Primary;
+        try {
+            const colorData = await getAverageColor(currentSong.thumbnail);
+            if (colorData && colorData.hex) {
+                accentColor = parseInt(colorData.hex.slice(1), 16);
+            }
+        } catch (err) {
+            // Ignore color extraction errors
+        }
+
         const container = new ContainerBuilder()
-            .setAccentColor(Colors.Primary)
-            .addSectionComponents(section)
+            .setAccentColor(accentColor)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🎶 正在播放`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addSectionComponents(
+                new SectionBuilder()
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
+                    .setThumbnailAccessory(new ThumbnailBuilder().setURL(currentSong.thumbnail))
+            )
             .addActionRowComponents(
                 new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
