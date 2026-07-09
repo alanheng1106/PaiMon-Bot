@@ -7,7 +7,7 @@ module.exports = {
     category: 'general',
     helpText: '🔹 `/about` - 顯示機器人的系統狀態、運行時長與資源使用情況',
     async execute(interaction, bot) {
-        const generateContainer = () => {
+        const generateContainer = (disabled = false) => {
             // Process Stats
             const uptime = process.uptime();
             const days = Math.floor(uptime / 86400);
@@ -24,6 +24,13 @@ module.exports = {
             // Bot Stats
             const content = `**👤 身份標識**\n${bot.user.tag}\n\n**⏱️ 運行時長**\n${uptimeStr}\n\n**📡 伺服器數量**\n${bot.guilds.cache.size} Guilds\n\n**🖥️ 執行環境**\nNode.js ${process.version} / ${osPlatform}\n\n**📟 處理器 (CPU)**\n\`${cpuModel}\`\n\n**📊 記憶體 (RAM)**\n${usedMem} GB / ${totalMem} GB`;
 
+            const refreshButton = new ButtonBuilder()
+                .setCustomId('refresh_about')
+                .setLabel('重新整理')
+                .setEmoji('🔄')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(disabled);
+
             return new ContainerBuilder()
                 .setAccentColor(Colors.Primary)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🤖 系統資訊`))
@@ -32,18 +39,11 @@ module.exports = {
                     new SectionBuilder()
                         .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
                         .setThumbnailAccessory(new ThumbnailBuilder().setURL(bot.user.displayAvatarURL({ extension: 'png', size: 1024 })))
-                );
+                )
+                .addActionRowComponents(new ActionRowBuilder().addComponents(refreshButton));
         };
 
-        const refreshButton = new ButtonBuilder()
-            .setCustomId('refresh_about')
-            .setLabel('重新整理')
-            .setEmoji('🔄')
-            .setStyle(ButtonStyle.Secondary);
-            
-        const actionRow = new ActionRowBuilder().addComponents(refreshButton);
-
-        await interaction.reply({ components: [generateContainer(), actionRow], flags: MessageFlags.IsComponentsV2 });
+        await interaction.reply({ components: [generateContainer()], flags: MessageFlags.IsComponentsV2 });
         const response = await interaction.fetchReply();
         
         const collector = response.createMessageComponentCollector({
@@ -56,14 +56,12 @@ module.exports = {
                 return i.reply({ content: '您不能使用這個按鈕哦！請自己輸入 `/about`。', ephemeral: true });
             }
             if (i.customId === 'refresh_about') {
-                await i.update({ components: [generateContainer(), actionRow], flags: MessageFlags.IsComponentsV2 });
+                await i.update({ components: [generateContainer()], flags: MessageFlags.IsComponentsV2 });
             }
         });
         
         collector.on('end', () => {
-            refreshButton.setDisabled(true);
-            const disabledRow = new ActionRowBuilder().addComponents(refreshButton);
-            interaction.editReply({ components: [generateContainer(), disabledRow], flags: MessageFlags.IsComponentsV2 }).catch(e => console.warn('Ignored error:', e.message));
+            interaction.editReply({ components: [generateContainer(true)], flags: MessageFlags.IsComponentsV2 }).catch(e => console.warn('Ignored error:', e.message));
         });
     }
 };
