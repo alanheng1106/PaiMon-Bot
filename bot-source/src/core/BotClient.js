@@ -101,9 +101,10 @@ class BotClient extends Client {
      */
 
     async sendError(interaction, title, description) {
+        const cleanTitle = title.replace(/^\s*(?:<a?:\w+:\d+>|\p{Extended_Pictographic})*\s*/gu, '').trim();
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Error)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:cross:1524603300752785550> ${title}`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:cross:1524603300752785550> ${cleanTitle}`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`${description}`));
 
@@ -121,9 +122,10 @@ class BotClient extends Client {
      */
 
     async sendSuccess(interaction, title, description, ephemeral = false) {
+        const cleanTitle = title.replace(/^\s*(?:<a?:\w+:\d+>|\p{Extended_Pictographic})*\s*/gu, '').trim();
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Success)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${title}`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> ${cleanTitle}`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`${description}`));
 
