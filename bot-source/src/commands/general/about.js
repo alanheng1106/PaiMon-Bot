@@ -21,7 +21,7 @@ module.exports = {
         const osPlatform = os.platform() === 'linux' ? 'Linux' : os.platform() === 'win32' ? 'Windows' : os.platform();
 
         // Bot Stats
-        const content = `基於 Discord.js 核心設計的音樂 & TTS 機器人\n\n**👤 身份標識**\n${bot.user.tag}\n\n**⏱️ 運行時長**\n${uptimeStr}\n\n**📡 伺服器數量**\n${bot.guilds.cache.size} Guilds\n\n**🖥️ 執行環境**\nNode.js ${process.version} / ${osPlatform}\n\n**📟 處理器 (CPU)**\n\`${cpuModel}\`\n\n**📊 記憶體 (RAM)**\n${usedMem} GB / ${totalMem} GB\n\n由 HaeImDuck 製作`;
+        const content = `基於 Discord.js 核心設計的音樂 & TTS 機器人\n\n**👤 身份標識**\n${bot.user.tag}\n\n**⏱️ 運行時長**\n${uptimeStr}\n\n**📡 伺服器數量**\n${bot.guilds.cache.size} Guilds\n\n**🖥️ 執行環境**\nNode.js ${process.version} / ${osPlatform}\n\n**📟 處理器 (CPU)**\n\`${cpuModel}\`\n\n**📊 記憶體 (RAM)**\n${usedMem} GB / ${totalMem} GB`;
 
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Primary)

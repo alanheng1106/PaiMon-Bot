@@ -28,7 +28,7 @@ module.exports = {
                 .map((m) => `${m.emoji} **${m.label}**`)
                 .join('\n');
 
-            const content = `歡迎使用指令手冊！請從下方選單選擇想了解的類別。\n\n**可用類別：**\n${categoryList}\n\n由 HaeImDuck 製作`;
+            const content = `歡迎使用指令手冊！請從下方選單選擇想了解的類別。\n\n**可用類別：**\n${categoryList}`;
             return new ContainerBuilder()
                 .setAccentColor(Colors.Primary)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 📖 指令手冊 - 首頁`))
@@ -49,7 +49,7 @@ module.exports = {
                           .map((cmd) => cmd.helpText ?? `🔹 \`/${cmd.data.name}\` - ${cmd.data.description}`)
                           .join('\n');
 
-            const content = `${description}\n\n由 HaeImDuck 製作`;
+            const content = `${description}`;
             return new ContainerBuilder()
                 .setAccentColor(Colors.Primary)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${meta.emoji} ${meta.label}`))
