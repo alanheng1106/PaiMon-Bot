@@ -31,7 +31,7 @@ module.exports = {
             const content = `歡迎使用指令手冊！請從下方選單選擇想了解的類別。\n\n**可用類別：**\n${categoryList}`;
             return new ContainerBuilder()
                 .setAccentColor(Colors.Primary)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <:logo:1524713380294693036> 指令手冊 - 首頁`))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <:logo:1524714133780434994> 指令手冊 - 首頁`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
         };
@@ -46,8 +46,8 @@ module.exports = {
                 commands.length === 0
                     ? '此類別目前沒有可用指令。'
                     : commands
-                          .map((cmd) => cmd.helpText ?? `🔹 \`/${cmd.data.name}\` - ${cmd.data.description}`)
-                          .join('\n');
+                        .map((cmd) => cmd.helpText ?? `🔹 \`/${cmd.data.name}\` - ${cmd.data.description}`)
+                        .join('\n');
 
             const content = `${description}`;
             return new ContainerBuilder()
@@ -61,7 +61,7 @@ module.exports = {
             .setCustomId('help_menu')
             .setPlaceholder('點擊這裡選擇指令類別...')
             .addOptions([
-                { label: '首頁 (Home)', description: '回到指令手冊首頁', value: 'home', emoji: '<:logo:1524713380294693036>' },
+                { label: '首頁 (Home)', description: '回到指令手冊首頁', value: 'home', emoji: '<:logo:1524714133780434994>' },
                 ...Object.entries(CATEGORY_META).map(([key, meta]) => ({
                     label: meta.label,
                     description: meta.description,
