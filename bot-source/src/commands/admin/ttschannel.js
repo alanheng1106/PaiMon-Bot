@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ContainerBuilder, TextDisplayBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
@@ -50,15 +50,21 @@ module.exports = {
             ttsSettings.lang = lang;
             bot.settings.set(interaction.guild.id, 'tts', ttsSettings);
 
-            const text = new TextDisplayBuilder().setContent(`### 🗣️ 自動 TTS 頻道已設定\n✅ 已將 <#${channel.id}> 設為自動語音頻道。\n**語言**：\`${lang}\``);
-            const container = new ContainerBuilder().setAccentColor(Colors.Success).addTextDisplayComponents(text);
+            const container = new ContainerBuilder()
+                .setAccentColor(Colors.Success)
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🗣️ 自動 TTS 頻道已設定`))
+                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`✅ 已將 <#${channel.id}> 設為自動語音頻道。\n**語言**：\`${lang}\``));
 
             await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
         } else if (subcommand === 'remove') {
             bot.settings.set(interaction.guild.id, 'tts', null);
 
-            const text = new TextDisplayBuilder().setContent('### 🗣️ 自動 TTS 頻道已解除\n✅ 伺服器已解除綁定自動語音頻道。');
-            const container = new ContainerBuilder().setAccentColor(Colors.Success).addTextDisplayComponents(text);
+            const container = new ContainerBuilder()
+                .setAccentColor(Colors.Success)
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### 🗣️ 自動 TTS 頻道已解除'))
+                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('✅ 伺服器已解除綁定自動語音頻道。'));
 
             await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
         }

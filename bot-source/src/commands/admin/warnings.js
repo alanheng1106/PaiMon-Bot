@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SectionBuilder, ThumbnailBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, ThumbnailBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
@@ -29,10 +29,13 @@ module.exports = {
             })
             .join('\n');
 
-        const content = `### ⚠️ 警告記錄 — ${user.tag}\n${warnLines}\n\n共 ${userWarnings.length} 次警告${userWarnings.length > 10 ? '（僅顯示最近 10 次）' : ''}`;
-        const text = new TextDisplayBuilder().setContent(content);
+        const content = `${warnLines}\n\n共 ${userWarnings.length} 次警告${userWarnings.length > 10 ? '（僅顯示最近 10 次）' : ''}`;
         const thumbnail = new ThumbnailBuilder().setURL(user.displayAvatarURL());
-        const section = new SectionBuilder().addTextDisplayComponents(text).setThumbnailAccessory(thumbnail);
+        const section = new SectionBuilder()
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ⚠️ 警告記錄 — ${user.tag}`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
+            .setThumbnailAccessory(thumbnail);
         const container = new ContainerBuilder().setAccentColor(Colors.Error).addSectionComponents(section);
 
         await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });

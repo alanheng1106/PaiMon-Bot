@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Partials, Collection, ContainerBuilder, TextDisplayBuilder, MessageFlags } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Collection, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const AIClient = require('./AIClient');
@@ -101,10 +101,11 @@ class BotClient extends Client {
      */
 
     async sendError(interaction, title, description) {
-        const text = new TextDisplayBuilder().setContent(`### ❌ ${title}\n${description}`);
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Error)
-            .addTextDisplayComponents(text);
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ❌ ${title}`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`${description}`));
 
         const payload = { components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 };
         try {
@@ -120,10 +121,11 @@ class BotClient extends Client {
      */
 
     async sendSuccess(interaction, title, description, ephemeral = false) {
-        const text = new TextDisplayBuilder().setContent(`### ${title}\n${description}`);
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Success)
-            .addTextDisplayComponents(text);
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${title}`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`${description}`));
 
         const flags = (ephemeral ? MessageFlags.Ephemeral : 0) | MessageFlags.IsComponentsV2;
         const payload = { components: [container], flags };

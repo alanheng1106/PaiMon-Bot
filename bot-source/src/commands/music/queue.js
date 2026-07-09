@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SectionBuilder, ThumbnailBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, ThumbnailBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
@@ -28,11 +28,14 @@ module.exports = {
             footerText = `\n\n以及還有 ${songs.length - 10} 首歌曲...`;
         }
 
-        const content = `### 🎶 當前播放清單\n${trackList}\n\n**📊 統計資料**\n總共: **${songs.length}** 首歌 | 總時長: **${bot.music.formatDuration(totalDurationMs)}**${footerText}`;
+        const content = `${trackList}\n\n**📊 統計資料**\n總共: **${songs.length}** 首歌 | 總時長: **${bot.music.formatDuration(totalDurationMs)}**${footerText}`;
         
-        const text = new TextDisplayBuilder().setContent(content);
         const thumbnail = new ThumbnailBuilder().setURL(currentSong.thumbnail);
-        const section = new SectionBuilder().addTextDisplayComponents(text).setThumbnailAccessory(thumbnail);
+        const section = new SectionBuilder()
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🎶 當前播放清單`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
+            .setThumbnailAccessory(thumbnail);
         const container = new ContainerBuilder().setAccentColor(Colors.Primary).addSectionComponents(section);
 
         await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });

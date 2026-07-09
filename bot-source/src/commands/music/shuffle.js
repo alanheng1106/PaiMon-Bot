@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
@@ -34,8 +34,11 @@ module.exports = {
 
         queue.songs = [current, ...rest];
 
-        const text = new TextDisplayBuilder().setContent(`### 🔀 佇列已打亂\n✅ 已隨機打亂 **${rest.length}** 首歌曲的播放順序`);
-        const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Primary)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🔀 佇列已打亂`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`✅ 已隨機打亂 **${rest.length}** 首歌曲的播放順序`));
 
         await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     }

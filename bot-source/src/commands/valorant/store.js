@@ -2,6 +2,7 @@ const {
     SlashCommandBuilder,
     ContainerBuilder,
     TextDisplayBuilder,
+    SeparatorBuilder,
     MediaGalleryBuilder,
     MediaGalleryItemBuilder,
     ActionRowBuilder,
@@ -23,8 +24,11 @@ module.exports = {
         const sessions = bot.valorant.getSessions(userId);
 
         if (!sessions) {
-            const text = new TextDisplayBuilder().setContent('### ❌ 尚未登入\n你還沒有登入任何 Riot 帳號。\n請先使用 `/login` 登入。');
-            const container = new ContainerBuilder().setAccentColor(Colors.Error).addTextDisplayComponents(text);
+            const container = new ContainerBuilder()
+                .setAccentColor(Colors.Error)
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ❌ 尚未登入'))
+                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('你還沒有登入任何 Riot 帳號。\n請先使用 `/login` 登入。'));
             return interaction.reply({ components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
         }
 
@@ -49,14 +53,17 @@ module.exports = {
             );
 
         const row = new ActionRowBuilder().addComponents(selectMenu);
-        const text = new TextDisplayBuilder().setContent('### 🎮 選擇帳號\n你有多個已登入的 Riot 帳號，請選擇要查詢的帳號：');
-        const container = new ContainerBuilder().setAccentColor(Colors.Valorant).addTextDisplayComponents(text);
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Valorant)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent('### 🎮 選擇帳號'))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent('你有多個已登入的 Riot 帳號，請選擇要查詢的帳號：'));
 
-        const response = await interaction.reply({
+        await interaction.reply({
             components: [container, row],
-            flags: MessageFlags.IsComponentsV2,
-            fetchReply: true
+            flags: MessageFlags.IsComponentsV2
         });
+        const response = await interaction.fetchReply();
 
         try {
             const selection = await response.awaitMessageComponent({
@@ -69,8 +76,11 @@ module.exports = {
             await interaction.editReply({ components: [] });
             await this._showStore(interaction, bot, userId, selection.values[0]);
         } catch {
-            const text = new TextDisplayBuilder().setContent('### ⏳ 操作逾時\n未在時間內選擇帳號，請重新使用 `/store`。');
-            const container = new ContainerBuilder().setAccentColor(Colors.Warning).addTextDisplayComponents(text);
+            const container = new ContainerBuilder()
+                .setAccentColor(Colors.Warning)
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ⏳ 操作逾時'))
+                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('未在時間內選擇帳號，請重新使用 `/store`。'));
             await interaction
                 .editReply({ components: [container], flags: MessageFlags.IsComponentsV2 })
                 .catch((e) => console.warn('Ignored error:', e.message));
@@ -86,8 +96,11 @@ module.exports = {
             const session = await bot.valorant.getValidSession(discordUserId, riotId);
 
             if (!session) {
-                const text = new TextDisplayBuilder().setContent(`### 🔒 Session 已過期\n帳號 **${riotId}** 的登入已過期，請重新使用 \`/login\` 登入。`);
-                const container = new ContainerBuilder().setAccentColor(Colors.Error).addTextDisplayComponents(text);
+                const container = new ContainerBuilder()
+                    .setAccentColor(Colors.Error)
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🔒 Session 已過期`))
+                    .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`帳號 **${riotId}** 的登入已過期，請重新使用 \`/login\` 登入。`));
 
                 if (interaction.deferred) return interaction.followUp({ components: [container], flags: MessageFlags.IsComponentsV2 });
                 return interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
@@ -98,8 +111,11 @@ module.exports = {
             const skinUuids = storefront.skinUuids;
 
             if (!skinUuids || skinUuids.length === 0) {
-                const text = new TextDisplayBuilder().setContent('### ⚠️ 商店資料異常\n無法取得每日商店資料，請稍後再試。');
-                const container = new ContainerBuilder().setAccentColor(Colors.Warning).addTextDisplayComponents(text);
+                const container = new ContainerBuilder()
+                    .setAccentColor(Colors.Warning)
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ⚠️ 商店資料異常'))
+                    .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('無法取得每日商店資料，請稍後再試。'));
                 
                 if (interaction.deferred) return interaction.followUp({ components: [container], flags: MessageFlags.IsComponentsV2 });
                 return interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
@@ -128,11 +144,11 @@ module.exports = {
             const buffer = await StoreCanvas.generateStoreImage(skinsData, storefront.remainingSeconds);
             const attachment = new AttachmentBuilder(buffer, { name: 'store.png' });
 
-            const text = new TextDisplayBuilder().setContent(`### 🎮 ${riotId} 的每日商店`);
             const mediaGallery = new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://store.png'));
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Valorant)
-                .addTextDisplayComponents(text)
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🎮 ${riotId} 的每日商店`))
+                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addMediaGalleryComponents(mediaGallery);
 
             const payload = { components: [container], files: [attachment], flags: MessageFlags.IsComponentsV2 };
@@ -144,8 +160,11 @@ module.exports = {
             }
         } catch (err) {
             console.error('[Valorant] Store query failed:', err);
-            const text = new TextDisplayBuilder().setContent(`### ❌ 查詢失敗\n無法查詢 **${riotId}** 的商店：\n\`${err.message}\`\n\n請嘗試重新 \`/login\` 登入。`);
-            const container = new ContainerBuilder().setAccentColor(Colors.Error).addTextDisplayComponents(text);
+            const container = new ContainerBuilder()
+                .setAccentColor(Colors.Error)
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ❌ 查詢失敗`))
+                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`無法查詢 **${riotId}** 的商店：\n\`${err.message}\`\n\n請嘗試重新 \`/login\` 登入。`));
 
             if (interaction.deferred) {
                 await interaction.followUp({ components: [container], flags: MessageFlags.IsComponentsV2 });

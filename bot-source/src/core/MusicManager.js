@@ -1,5 +1,5 @@
 const { Shoukaku, Connectors } = require('shoukaku');
-const { ContainerBuilder, TextDisplayBuilder, SectionBuilder, ThumbnailBuilder, MessageFlags } = require('discord.js');
+const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, ThumbnailBuilder, MessageFlags } = require('discord.js');
 const { Colors, Music: MusicConfig } = require('../config');
 
 class MusicManager {
@@ -100,8 +100,10 @@ class MusicManager {
 
         if (!queue.songs.length) {
             if (!queue.lastSongIsTTS) {
-                const text = new TextDisplayBuilder().setContent('🎶 播放佇列已結束');
-                const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
+                const container = new ContainerBuilder()
+                    .setAccentColor(Colors.Primary)
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('### 🎶 播放佇列已結束'))
+                    .addSeparatorComponents(new SeparatorBuilder().setDivider(true));
                 queue.textChannel?.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
             }
             return;
@@ -115,8 +117,11 @@ class MusicManager {
             }
             // Suppress now-playing embed for TTS, resume, or track loop repeats
             if (!song.isTTS && !song.resumePosition && queue.loop !== 'track') {
-                const text = new TextDisplayBuilder().setContent(`### ▶️ 正在播放\n[${song.title}](${song.url}) - ${song.author}`);
-                const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
+                const container = new ContainerBuilder()
+                    .setAccentColor(Colors.Primary)
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ▶️ 正在播放`))
+                    .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`[${song.title}](${song.url}) - ${song.author}`));
                 queue.textChannel?.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
             }
         } catch (err) {
@@ -186,9 +191,12 @@ class MusicManager {
             })
         );
 
-        const content = `### 📖 已加載整個播放清單\n**${playlistName}**\n\n**🎶 歌曲數量**\n${tracks.length} 首\n\n**👤 點播者**\n${user.tag}\n\nRequested by ${user.tag}`;
-        const text = new TextDisplayBuilder().setContent(content);
-        const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
+        const content = `**${playlistName}**\n\n**🎶 歌曲數量**\n${tracks.length} 首\n\n**👤 點播者**\n${user.tag}\n\nRequested by ${user.tag}`;
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Primary)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 📖 已加載整個播放清單`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
 
         textChannel.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
         if (wasEmpty) await this.processQueue(voiceChannel.guild.id);

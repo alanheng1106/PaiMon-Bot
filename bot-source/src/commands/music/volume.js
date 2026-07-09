@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
@@ -34,8 +34,11 @@ module.exports = {
         // Persist volume setting for this guild
         bot.settings.set(interaction.guild.id, 'volume', volume);
 
-        const text = new TextDisplayBuilder().setContent(`### 🔊 音量調整\n播放音量已設定為 **${volume}%**`);
-        const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Primary)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🔊 音量調整`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`播放音量已設定為 **${volume}%**`));
 
         await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     }

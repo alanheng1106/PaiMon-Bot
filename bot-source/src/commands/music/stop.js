@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
@@ -22,8 +22,11 @@ module.exports = {
 
         bot.music.stop(interaction.guild.id);
 
-        const text = new TextDisplayBuilder().setContent('### ⏹️ 停止播放\n播放已停止且佇列已清空');
-        const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Primary)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ⏹️ 停止播放'))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent('播放已停止且佇列已清空'));
 
         await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     }

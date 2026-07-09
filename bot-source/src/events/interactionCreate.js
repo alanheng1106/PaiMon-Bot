@@ -3,6 +3,7 @@ const {
     MessageFlags,
     ContainerBuilder,
     TextDisplayBuilder,
+    SeparatorBuilder,
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
@@ -64,8 +65,11 @@ module.exports = {
                 }
             } catch (error) {
                 console.error('[Modal] Failed:', error.message);
-                const text = new TextDisplayBuilder().setContent('### ❌ 處理失敗\n處理登入時發生錯誤，請稍後再試。');
-                const container = new ContainerBuilder().setAccentColor(Colors.Error).addTextDisplayComponents(text);
+                const container = new ContainerBuilder()
+                    .setAccentColor(Colors.Error)
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ❌ 處理失敗'))
+                    .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('處理登入時發生錯誤，請稍後再試。'));
                 const payload = { components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 };
                 if (interaction.deferred || interaction.replied) {
                     await interaction.followUp(payload).catch((e) => console.warn('Ignored error:', e.message));
@@ -88,15 +92,21 @@ async function _handleValUrlLogin(interaction, bot) {
     const result = await bot.valorant.loginWithUrl(interaction.user.id, authUrl);
 
     if (result.error) {
-        const text = new TextDisplayBuilder().setContent(`### ❌ 登入失敗\n${result.error}`);
-        const container = new ContainerBuilder().setAccentColor(Colors.Error).addTextDisplayComponents(text);
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Error)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ❌ 登入失敗`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`${result.error}`));
         return interaction.followUp({ components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
     }
 
     // Success
-    const content = `### ✅ 登入成功！\n**Riot ID：** ${result.riotId}\n**伺服器：** ${result.shard.toUpperCase()}\n\n現在可以使用 \`/store\` 查看你的每日商店了！\n\n💡 提示：此授權的有效期約為 1 小時，過期後需重新授權。`;
-    const text = new TextDisplayBuilder().setContent(content);
-    const container = new ContainerBuilder().setAccentColor(Colors.Success).addTextDisplayComponents(text);
+    const content = `**Riot ID：** ${result.riotId}\n**伺服器：** ${result.shard.toUpperCase()}\n\n現在可以使用 \`/store\` 查看你的每日商店了！\n\n💡 提示：此授權的有效期約為 1 小時，過期後需重新授權。`;
+    const container = new ContainerBuilder()
+        .setAccentColor(Colors.Success)
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ✅ 登入成功！`))
+        .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
 
     return interaction.followUp({ components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
 }

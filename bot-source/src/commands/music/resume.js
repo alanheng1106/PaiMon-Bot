@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
@@ -25,8 +25,11 @@ module.exports = {
 
         bot.music.resume(interaction.guild.id);
 
-        const text = new TextDisplayBuilder().setContent('### ▶️ 恢復播放\n音樂播放已成功恢復');
-        const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Primary)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ▶️ 恢復播放'))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent('音樂播放已成功恢復'));
 
         await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     }

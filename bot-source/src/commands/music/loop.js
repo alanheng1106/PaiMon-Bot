@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
@@ -32,8 +32,11 @@ module.exports = {
         };
 
         const modeText = modeLabels[nextMode];
-        const text = new TextDisplayBuilder().setContent(`### 🔁 循環模式已更改\n當前循環模式：**${modeText}**`);
-        const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Primary)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🔁 循環模式已更改`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`當前循環模式：**${modeText}**`));
 
         await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     }

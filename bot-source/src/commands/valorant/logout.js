@@ -2,6 +2,7 @@ const {
     SlashCommandBuilder,
     ContainerBuilder,
     TextDisplayBuilder,
+    SeparatorBuilder,
     ActionRowBuilder,
     StringSelectMenuBuilder,
     ComponentType,
@@ -19,8 +20,11 @@ module.exports = {
         const sessions = bot.valorant.getSessions(userId);
 
         if (!sessions) {
-            const text = new TextDisplayBuilder().setContent('### ℹ️ 無需登出\n你目前沒有任何已登入的 Riot 帳號。');
-            const container = new ContainerBuilder().setAccentColor(Colors.Warning).addTextDisplayComponents(text);
+            const container = new ContainerBuilder()
+                .setAccentColor(Colors.Warning)
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ℹ️ 無需登出'))
+                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('你目前沒有任何已登入的 Riot 帳號。'));
             return interaction.reply({ components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
         }
 
@@ -29,8 +33,11 @@ module.exports = {
         if (riotIds.length === 1) {
             // Single account — logout directly
             bot.valorant.removeSession(userId, riotIds[0]);
-            const text = new TextDisplayBuilder().setContent(`### 👋 已登出\n已成功登出 **${riotIds[0]}**`);
-            const container = new ContainerBuilder().setAccentColor(Colors.Success).addTextDisplayComponents(text);
+            const container = new ContainerBuilder()
+                .setAccentColor(Colors.Success)
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 👋 已登出`))
+                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`已成功登出 **${riotIds[0]}**`));
             return interaction.reply({ components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
         }
 
@@ -55,14 +62,17 @@ module.exports = {
             .addOptions(options);
 
         const row = new ActionRowBuilder().addComponents(selectMenu);
-        const text = new TextDisplayBuilder().setContent(`### 👋 選擇要登出的帳號\n你目前有 **${riotIds.length}** 個已登入的帳號：\n${riotIds.map((id) => `• ${id}`).join('\n')}`);
-        const container = new ContainerBuilder().setAccentColor(Colors.Valorant).addTextDisplayComponents(text);
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Valorant)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 👋 選擇要登出的帳號`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`你目前有 **${riotIds.length}** 個已登入的帳號：\n${riotIds.map((id) => `• ${id}`).join('\n')}`));
 
-        const response = await interaction.reply({
+        await interaction.reply({
             components: [container, row],
-            flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
-            fetchReply: true
+            flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
         });
+        const response = await interaction.fetchReply();
 
         try {
             const selection = await response.awaitMessageComponent({
@@ -75,18 +85,27 @@ module.exports = {
 
             if (selected === '__all__') {
                 bot.valorant.removeAllSessions(userId);
-                const text = new TextDisplayBuilder().setContent(`### 🗑️ 已全部登出\n已成功登出所有 **${riotIds.length}** 個帳號。`);
-                const container = new ContainerBuilder().setAccentColor(Colors.Success).addTextDisplayComponents(text);
+                const container = new ContainerBuilder()
+                    .setAccentColor(Colors.Success)
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🗑️ 已全部登出`))
+                    .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`已成功登出所有 **${riotIds.length}** 個帳號。`));
                 await selection.update({ components: [container], flags: MessageFlags.IsComponentsV2 });
             } else {
                 bot.valorant.removeSession(userId, selected);
-                const text = new TextDisplayBuilder().setContent(`### 👋 已登出\n已成功登出 **${selected}**`);
-                const container = new ContainerBuilder().setAccentColor(Colors.Success).addTextDisplayComponents(text);
+                const container = new ContainerBuilder()
+                    .setAccentColor(Colors.Success)
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 👋 已登出`))
+                    .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`已成功登出 **${selected}**`));
                 await selection.update({ components: [container], flags: MessageFlags.IsComponentsV2 });
             }
         } catch {
-            const text = new TextDisplayBuilder().setContent('### ⏳ 操作逾時\n未在時間內選擇，請重新使用 `/logout`。');
-            const container = new ContainerBuilder().setAccentColor(Colors.Warning).addTextDisplayComponents(text);
+            const container = new ContainerBuilder()
+                .setAccentColor(Colors.Warning)
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ⏳ 操作逾時'))
+                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('未在時間內選擇，請重新使用 `/logout`。'));
             await interaction
                 .editReply({ components: [container], flags: MessageFlags.IsComponentsV2 })
                 .catch((e) => console.warn('Ignored error:', e.message));

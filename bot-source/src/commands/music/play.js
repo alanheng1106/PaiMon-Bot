@@ -6,6 +6,7 @@ const {
     ComponentType,
     ContainerBuilder,
     TextDisplayBuilder,
+    SeparatorBuilder,
     MessageFlags
 } = require('discord.js');
 const { Colors } = require('../../config');
@@ -81,8 +82,11 @@ module.exports = {
                     )
                 );
 
-            const text = new TextDisplayBuilder().setContent(`### 🔍 搜尋結果\n以下是關鍵字 \`${query}\` 的匹配項, 請從下方選單選擇:\n\n選單將在 25 秒後失效`);
-            const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
+            const container = new ContainerBuilder()
+                .setAccentColor(Colors.Primary)
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🔍 搜尋結果`))
+                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`以下是關鍵字 \`${query}\` 的匹配項, 請從下方選單選擇:\n\n選單將在 25 秒後失效`));
 
             const response = await interaction.followUp({
                 components: [container, new ActionRowBuilder().addComponents(selectMenu)],

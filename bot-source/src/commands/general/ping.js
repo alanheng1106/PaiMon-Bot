@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SectionBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
@@ -9,7 +9,8 @@ module.exports = {
         const text = new TextDisplayBuilder().setContent('🔍 正在偵測系統延遲...');
         const initialContainer = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
 
-        const sent = await interaction.reply({ components: [initialContainer], flags: MessageFlags.IsComponentsV2, fetchReply: true });
+        await interaction.reply({ components: [initialContainer], flags: MessageFlags.IsComponentsV2 });
+        const sent = await interaction.fetchReply();
         const latency = sent.createdTimestamp - interaction.createdTimestamp;
         const apiLatency = Math.round(bot.ws.ping);
 
@@ -18,9 +19,12 @@ module.exports = {
         if (latency > 200) color = Colors.Warning;
         if (latency > 500) color = Colors.Error;
 
-        const content = `### 🏓 系統延遲回報\n\n**📡 網關連線 (WebSocket)**\n\`${apiLatency}ms\`\n\n**🌐 核心回應 (Roundtrip)**\n\`${latency}ms\``;
-        const resultText = new TextDisplayBuilder().setContent(content);
-        const container = new ContainerBuilder().setAccentColor(color).addTextDisplayComponents(resultText);
+        const content = `**📡 網關連線 (WebSocket)**\n\`${apiLatency}ms\`\n\n**🌐 核心回應 (Roundtrip)**\n\`${latency}ms\``;
+        const container = new ContainerBuilder()
+            .setAccentColor(color)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🏓 系統延遲回報`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
 
         await interaction.editReply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     }

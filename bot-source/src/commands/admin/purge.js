@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
 
 module.exports = {
@@ -25,8 +25,11 @@ module.exports = {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const replyEmbed = (color, title, description) => {
-            const text = new TextDisplayBuilder().setContent(`### ${title}\n${description}`);
-            const container = new ContainerBuilder().setAccentColor(color).addTextDisplayComponents(text);
+            const container = new ContainerBuilder()
+                .setAccentColor(color)
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${title}`))
+                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`${description}`));
             return interaction.editReply({
                 components: [container],
                 flags: MessageFlags.IsComponentsV2
