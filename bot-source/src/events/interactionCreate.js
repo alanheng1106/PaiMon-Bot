@@ -67,7 +67,7 @@ module.exports = {
                 console.error('[Modal] Failed:', error.message);
                 const container = new ContainerBuilder()
                     .setAccentColor(Colors.Error)
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <:cross:1524603300752785550> 處理失敗'))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:cross:1524603300752785550> 處理失敗'))
                     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                     .addTextDisplayComponents(new TextDisplayBuilder().setContent('處理登入時發生錯誤，請稍後再試。'));
                 const payload = { components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 };
@@ -94,7 +94,7 @@ async function _handleValUrlLogin(interaction, bot) {
     if (result.error) {
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Error)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <:cross:1524603300752785550> 登入失敗`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:cross:1524603300752785550> 登入失敗`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`${result.error}`));
         return interaction.followUp({ components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
@@ -104,7 +104,7 @@ async function _handleValUrlLogin(interaction, bot) {
     const content = `**Riot ID：** ${result.riotId}\n**伺服器：** ${result.shard.toUpperCase()}\n\n現在可以使用 \`/store\` 查看你的每日商店了！\n\n💡 提示：此授權的有效期約為 1 小時，過期後需重新授權。`;
     const container = new ContainerBuilder()
         .setAccentColor(Colors.Success)
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <:check:1524601509772529665> 登入成功！`))
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 登入成功！`))
         .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
 

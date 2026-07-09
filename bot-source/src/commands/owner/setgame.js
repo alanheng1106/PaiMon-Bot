@@ -36,6 +36,6 @@ module.exports = {
         }
 
         bot.user.setActivity(name, { type });
-        await bot.sendSuccess(interaction, '🎮 狀態更新成功', `<:check:1524601509772529665> 標語已更新為活動類型 **${type}**: \`${name}\``, true);
+        await bot.sendSuccess(interaction, '🎮 狀態更新成功', `<a:check:1524601509772529665> 標語已更新為活動類型 **${type}**: \`${name}\``, true);
     }
 };

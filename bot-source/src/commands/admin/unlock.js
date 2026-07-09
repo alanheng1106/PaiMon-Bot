@@ -25,7 +25,7 @@ module.exports = {
             await bot.sendSuccess(
                 interaction,
                 '🔓 頻道已解鎖',
-                `<:check:1524601509772529665> **#${channel.name}** 已解鎖，成員可以重新正常發言。`
+                `<a:check:1524601509772529665> **#${channel.name}** 已解鎖，成員可以重新正常發言。`
             );
         } catch (err) {
             console.error('[Unlock CMD]', err);
