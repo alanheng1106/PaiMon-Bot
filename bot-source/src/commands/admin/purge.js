@@ -61,14 +61,14 @@ module.exports = {
 
             const deleted = await interaction.channel.bulkDelete(validMessages, true);
 
-            let desc = `<a:check:1524601509772529665> 已成功刪除 **${deleted.size}** 則訊息`;
+            let desc = `已成功刪除 **${deleted.size}** 則訊息`;
             if (targetUser) desc += `（來自 **${targetUser.tag}**）`;
             if (skipped > 0) desc += `\n> ⚠️ 已略過 **${skipped}** 則超過 14 天的舊訊息`;
 
             await replyEmbed(Colors.Success, '🗑️ 清除完成', desc);
         } catch (err) {
             console.error('[Purge CMD]', err);
-            replyEmbed(Colors.Error, '<a:cross:1524603300752785550> 執行失敗', '刪除過程中發生錯誤，請確認機器人擁有 `管理訊息` 的權限。');
+            replyEmbed(Colors.Error, '執行失敗', '刪除過程中發生錯誤，請確認機器人擁有 `管理訊息` 的權限。');
         }
     }
 };

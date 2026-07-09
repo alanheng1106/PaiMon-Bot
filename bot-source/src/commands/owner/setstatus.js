@@ -31,6 +31,6 @@ module.exports = {
         }
 
         bot.user.setStatus(option);
-        await bot.sendSuccess(interaction, '📡 狀態切換成功', `<a:check:1524601509772529665> 核心狀態已切換為：**${option}**`, true);
+        await bot.sendSuccess(interaction, '📡 狀態切換成功', `核心狀態已切換為：**${option}**`, true);
     }
 };

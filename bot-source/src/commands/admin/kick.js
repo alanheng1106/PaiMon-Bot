@@ -58,7 +58,7 @@ module.exports = {
 
         try {
             await member.kick(`By ${interaction.user.tag}: ${reason}`);
-            await bot.sendSuccess(interaction, '👟 踢出成功', `<a:check:1524601509772529665> 已成功踢出 **${user.tag}**\n原因: \`${reason}\``);
+            await bot.sendSuccess(interaction, '👟 踢出成功', `已成功踢出 **${user.tag}**\n原因: \`${reason}\``);
         } catch (err) {
             console.error('[Kick CMD]', err);
             bot.sendError(interaction, '執行失敗', '踢出過程中發生內部錯誤，請稍後再試。');

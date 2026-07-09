@@ -26,7 +26,7 @@ module.exports = {
         queue.loop = nextMode;
 
         const modeLabels = {
-            none: '<a:cross:1524603300752785550> 關閉',
+            none: '關閉',
             track: '🔂 單曲循環',
             queue: '🔁 佇列循環'
         };

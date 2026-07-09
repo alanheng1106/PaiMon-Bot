@@ -38,7 +38,7 @@ module.exports = {
             .setAccentColor(Colors.Primary)
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 佇列已打亂`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`<a:check:1524601509772529665> 已隨機打亂 **${rest.length}** 首歌曲的播放順序`));
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`已隨機打亂 **${rest.length}** 首歌曲的播放順序`));
 
         await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     }

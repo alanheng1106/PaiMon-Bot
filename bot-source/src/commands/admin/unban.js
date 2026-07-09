@@ -32,8 +32,8 @@ module.exports = {
             await interaction.guild.members.unban(userId, `By ${interaction.user.tag}: ${reason}`);
             await bot.sendSuccess(
                 interaction,
-                '<a:check:1524601509772529665> 解封成功',
-                `<a:check:1524601509772529665> 已成功解除封鎖 **${banEntry.user.tag}**\n📋 原因：\`${reason}\``
+                '解封成功',
+                `已成功解除封鎖 **${banEntry.user.tag}**\n📋 原因：\`${reason}\``
             );
         } catch (err) {
             console.error('[Unban CMD]', err);
