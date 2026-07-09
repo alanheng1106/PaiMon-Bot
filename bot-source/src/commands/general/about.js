@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, ThumbnailBuilder, MessageFlags } = require('discord.js');
 const os = require('os');
 const { Colors } = require('../../config');
 
@@ -27,7 +27,11 @@ module.exports = {
             .setAccentColor(Colors.Primary)
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🤖 系統資訊`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
+            .addSectionComponents(
+                new SectionBuilder()
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
+                    .setThumbnailAccessory(new ThumbnailBuilder().setURL(bot.user.displayAvatarURL({ extension: 'png', size: 1024 })))
+            );
 
         return interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     }
