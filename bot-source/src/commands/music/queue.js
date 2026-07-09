@@ -31,12 +31,16 @@ module.exports = {
         const content = `${trackList}\n\n**📊 統計資料**\n總共: **${songs.length}** 首歌 | 總時長: **${bot.music.formatDuration(totalDurationMs)}**${footerText}`;
         
         const thumbnail = new ThumbnailBuilder().setURL(currentSong.thumbnail);
+        const text1 = new TextDisplayBuilder().setContent(`### 🎶 當前播放清單`);
+        const sep = new SeparatorBuilder().setDivider(true);
         const section = new SectionBuilder()
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 當前播放清單`))
-            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
             .setThumbnailAccessory(thumbnail);
-        const container = new ContainerBuilder().setAccentColor(Colors.Primary).addSectionComponents(section);
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Primary)
+            .addTextDisplayComponents(text1)
+            .addSeparatorComponents(sep)
+            .addSectionComponents(section);
 
         await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     }
