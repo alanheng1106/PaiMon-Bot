@@ -109,7 +109,7 @@ module.exports = {
                     await bot.music.play(voiceChannel, interaction.channel, selectedTrack, interaction.user);
                 })
                 .catch(() => {
-                    const text = new TextDisplayBuilder().setContent('<:custom_cross:1524603300752785550> **選擇已超時或取消**');
+                    const text = new TextDisplayBuilder().setContent('<:cross:1524603300752785550> **選擇已超時或取消**');
                     const container = new ContainerBuilder().setAccentColor(Colors.Error).addTextDisplayComponents(text);
 
                     interaction

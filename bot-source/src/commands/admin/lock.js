@@ -30,7 +30,7 @@ module.exports = {
             await bot.sendSuccess(
                 interaction,
                 '🔒 頻道已鎖定',
-                `<:custom_check:1524601509772529665> **#${channel.name}** 已鎖定，一般成員目前無法發言。\n📋 原因：\`${reason}\``
+                `<:check:1524601509772529665> **#${channel.name}** 已鎖定，一般成員目前無法發言。\n📋 原因：\`${reason}\``
             );
         } catch (err) {
             console.error('[Lock CMD]', err);

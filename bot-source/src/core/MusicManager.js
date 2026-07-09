@@ -165,7 +165,7 @@ class MusicManager {
 
         if (wasEmpty) await this.processQueue(voiceChannel.guild.id);
         else if (!options.isTTS) {
-            const content = `### <:custom_check:1524601509772529665> 已加入播放佇列\n[${track.info.title}](${track.info.uri})\n\n**👤 歌手**\n${track.info.author}\n\n**⏱️ 時長**\n${this.formatDuration(track.info.length)}\n\n**🔢 佇列位置**\n${queue.songs.length}\n\n由 ${user.tag} 點播`;
+            const content = `### <:check:1524601509772529665> 已加入播放佇列\n[${track.info.title}](${track.info.uri})\n\n**👤 歌手**\n${track.info.author}\n\n**⏱️ 時長**\n${this.formatDuration(track.info.length)}\n\n**🔢 佇列位置**\n${queue.songs.length}\n\n由 ${user.tag} 點播`;
             const text = new TextDisplayBuilder().setContent(content);
             const thumbnail = new ThumbnailBuilder().setURL(track.info.artworkUrl || `https://img.youtube.com/vi/${track.info.identifier}/hqdefault.jpg`);
             const section = new SectionBuilder().addTextDisplayComponents(text).setThumbnailAccessory(thumbnail);

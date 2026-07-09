@@ -103,7 +103,7 @@ class BotClient extends Client {
     async sendError(interaction, title, description) {
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Error)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <:custom_cross:1524603300752785550> ${title}`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <:cross:1524603300752785550> ${title}`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`${description}`));
 

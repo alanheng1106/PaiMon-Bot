@@ -25,7 +25,7 @@ module.exports = {
                 await bot.sendSuccess(
                     interaction,
                     '🚀 慢速模式已關閉',
-                    `<:custom_check:1524601509772529665> **#${interaction.channel.name}** 的慢速模式已關閉`,
+                    `<:check:1524601509772529665> **#${interaction.channel.name}** 的慢速模式已關閉`,
                     true
                 );
             } else {
@@ -39,7 +39,7 @@ module.exports = {
                 await bot.sendSuccess(
                     interaction,
                     '🐢 慢速模式已啟用',
-                    `<:custom_check:1524601509772529665> **#${interaction.channel.name}** 的慢速模式已設定為 **${label}** 每則訊息`,
+                    `<:check:1524601509772529665> **#${interaction.channel.name}** 的慢速模式已設定為 **${label}** 每則訊息`,
                     true
                 );
             }

@@ -26,7 +26,7 @@ module.exports = {
         if (!sessions) {
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Error)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <:custom_cross:1524603300752785550> 尚未登入'))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <:cross:1524603300752785550> 尚未登入'))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent('你還沒有登入任何 Riot 帳號。\n請先使用 `/login` 登入。'));
             return interaction.reply({ components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
@@ -162,7 +162,7 @@ module.exports = {
             console.error('[Valorant] Store query failed:', err);
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Error)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <:custom_cross:1524603300752785550> 查詢失敗`))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <:cross:1524603300752785550> 查詢失敗`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`無法查詢 **${riotId}** 的商店：\n\`${err.message}\`\n\n請嘗試重新 \`/login\` 登入。`));
 
