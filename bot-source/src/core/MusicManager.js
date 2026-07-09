@@ -1,6 +1,7 @@
 const { Shoukaku, Connectors } = require('shoukaku');
 const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, ThumbnailBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const { Colors, Music: MusicConfig } = require('../config');
+const { getAverageColor } = require('fast-average-color-node');
 
 class MusicManager {
     constructor(bot) {
@@ -112,8 +113,18 @@ class MusicManager {
             if (!song.isTTS && !song.resumePosition && queue.loop !== 'track') {
                 const content = `**🎵 歌名**\n${song.title}\n\n**🎤 歌手**\n${song.author}\n\n**⏱️ 時長**\n${this.formatDuration(song.duration)}\n\n**👤 點播者**\n<@${song.requester.id}>\n\n**🔊 語音頻道**\n<#${queue.voiceChannelId}>`;
                 
+                let accentColor = Colors.Primary;
+                try {
+                    const colorData = await getAverageColor(song.thumbnail);
+                    if (colorData && colorData.hex) {
+                        accentColor = parseInt(colorData.hex.slice(1), 16);
+                    }
+                } catch (err) {
+                    // Ignore color extraction errors
+                }
+
                 const container = new ContainerBuilder()
-                    .setAccentColor(Colors.Primary)
+                    .setAccentColor(accentColor)
                     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🎶 正在播放`))
                     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                     .addSectionComponents(
