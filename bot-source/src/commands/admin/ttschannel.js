@@ -54,7 +54,7 @@ module.exports = {
                 .setAccentColor(Colors.Success)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🗣️ 自動 TTS 頻道已設定`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`✅ 已將 <#${channel.id}> 設為自動語音頻道。\n**語言**：\`${lang}\``));
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`<:check:1524601509772529665> 已將 <#${channel.id}> 設為自動語音頻道。\n**語言**：\`${lang}\``));
 
             await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
         } else if (subcommand === 'remove') {
@@ -64,7 +64,7 @@ module.exports = {
                 .setAccentColor(Colors.Success)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent('### 🗣️ 自動 TTS 頻道已解除'))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent('✅ 伺服器已解除綁定自動語音頻道。'));
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('<:check:1524601509772529665> 伺服器已解除綁定自動語音頻道。'));
 
             await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
         }

@@ -51,7 +51,7 @@ module.exports = {
         await bot.sendSuccess(
             interaction,
             '⚠️ 警告已記錄',
-            `✅ 已警告 **${user.tag}**\n📋 原因：\`${reason}\`\n📊 該成員目前累積 **${warnCount}** 次警告`
+            `<:check:1524601509772529665> 已警告 **${user.tag}**\n📋 原因：\`${reason}\`\n📊 該成員目前累積 **${warnCount}** 次警告`
         );
     }
 };

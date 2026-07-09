@@ -76,7 +76,7 @@ module.exports = {
             await bot.sendSuccess(
                 interaction,
                 '⏳ 禁言成功',
-                `✅ 已成功禁言 **${user.tag}**\n⏱️ 時長：**${durationLabel}**\n📋 原因：\`${reason}\``
+                `<:check:1524601509772529665> 已成功禁言 **${user.tag}**\n⏱️ 時長：**${durationLabel}**\n📋 原因：\`${reason}\``
             );
         } catch (err) {
             console.error('[Timeout CMD]', err);

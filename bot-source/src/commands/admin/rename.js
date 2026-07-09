@@ -72,7 +72,7 @@ module.exports = {
             await bot.sendSuccess(
                 interaction,
                 '📝 暱稱變更成功',
-                `✅ 已將 **${user.tag}** 的暱稱從 \`${oldNickname}\` 更改為 \`${nickname}\``
+                `<:check:1524601509772529665> 已將 **${user.tag}** 的暱稱從 \`${oldNickname}\` 更改為 \`${nickname}\``
             );
         } catch (err) {
             console.error('[Rename CMD]', err);
