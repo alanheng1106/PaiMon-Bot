@@ -99,13 +99,7 @@ class MusicManager {
         if (!queue) return;
 
         if (!queue.songs.length) {
-            if (!queue.lastSongIsTTS) {
-                const container = new ContainerBuilder()
-                    .setAccentColor(Colors.Primary)
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 播放佇列已結束'))
-                    .addSeparatorComponents(new SeparatorBuilder().setDivider(true));
-                queue.textChannel?.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
-            }
+            // Queue is empty, just return without sending a redundant message.
             return;
         }
 
