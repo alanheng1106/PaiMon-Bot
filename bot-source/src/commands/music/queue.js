@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, ThumbnailBuilder, MessageFlags } = require('discord.js');
 const { Colors } = require('../../config');
+const { getAverageColor } = require('fast-average-color-node');
 
 module.exports = {
     data: new SlashCommandBuilder().setName('queue').setDescription('查看當前播放列表'),
@@ -30,6 +31,16 @@ module.exports = {
 
         const content = `${trackList}\n\n**📊 統計資料**\n總共: **${songs.length}** 首歌 | 總時長: **${bot.music.formatDuration(totalDurationMs)}**${footerText}`;
         
+        let accentColor = Colors.Primary;
+        try {
+            const colorData = await getAverageColor(currentSong.thumbnail);
+            if (colorData && colorData.hex) {
+                accentColor = parseInt(colorData.hex.slice(1), 16);
+            }
+        } catch (err) {
+            // Ignore color extraction errors
+        }
+
         const thumbnail = new ThumbnailBuilder().setURL(currentSong.thumbnail);
         const text1 = new TextDisplayBuilder().setContent(`### 🎶 當前播放清單`);
         const sep = new SeparatorBuilder().setDivider(true);
@@ -37,7 +48,7 @@ module.exports = {
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
             .setThumbnailAccessory(thumbnail);
         const container = new ContainerBuilder()
-            .setAccentColor(Colors.Primary)
+            .setAccentColor(accentColor)
             .addTextDisplayComponents(text1)
             .addSeparatorComponents(sep)
             .addSectionComponents(section);
