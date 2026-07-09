@@ -1,5 +1,5 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-
+const { SlashCommandBuilder, PermissionFlagsBits, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, ThumbnailBuilder, MessageFlags } = require('discord.js');
+const { Colors } = require('../../config');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('warn')
@@ -48,10 +48,19 @@ module.exports = {
             )
             .catch((e) => console.warn('Ignored error:', e.message));
 
-        await bot.sendSuccess(
-            interaction,
-            '⚠️ 警告已記錄',
-            `已警告 **${user.tag}**\n📋 原因：\`${reason}\`\n📊 該成員目前累積 **${warnCount}** 次警告`
-        );
+        const timestamp = Math.floor(Date.now() / 1000);
+        const content = `**👤 被執行者**\n${user.tag} (\`${user.id}\`)\n\n**👮 執行者**\n${interaction.user.tag} (\`${interaction.user.id}\`)\n\n**🕒 執行時間**\n<t:${timestamp}:f>\n\n**📊 累積警告**\n共 ${warnCount} 次\n\n**📋 執行原因**\n${reason}`;
+        
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Warning || Colors.Success) // Fallback to Success if Warning is not defined
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 警告已記錄`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addSectionComponents(
+                new SectionBuilder()
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
+                    .setThumbnailAccessory(new ThumbnailBuilder().setURL(user.displayAvatarURL({ extension: 'png', size: 1024 })))
+            );
+
+        await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     }
 };
