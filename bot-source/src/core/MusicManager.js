@@ -1,5 +1,5 @@
 const { Shoukaku, Connectors } = require('shoukaku');
-const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, ThumbnailBuilder, MessageFlags } = require('discord.js');
+const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, ThumbnailBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const { Colors, Music: MusicConfig } = require('../config');
 
 class MusicManager {
@@ -121,7 +121,15 @@ class MusicManager {
                     .setAccentColor(Colors.Primary)
                     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ▶️ 正在播放`))
                     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`[${song.title}](${song.url}) - ${song.author}`));
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**${song.title}** - ${song.author}`))
+                    .addActionRowComponents(
+                        new ActionRowBuilder().addComponents(
+                            new ButtonBuilder()
+                                .setLabel('🔗 前往播放來源')
+                                .setStyle(ButtonStyle.Link)
+                                .setURL(song.url)
+                        )
+                    );
                 queue.textChannel?.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
             }
         } catch (err) {
@@ -165,11 +173,21 @@ class MusicManager {
 
         if (wasEmpty) await this.processQueue(voiceChannel.guild.id);
         else if (!options.isTTS) {
-            const content = `### <a:check:1524601509772529665> 已加入播放佇列\n[${track.info.title}](${track.info.uri})\n\n**👤 歌手**\n${track.info.author}\n\n**⏱️ 時長**\n${this.formatDuration(track.info.length)}\n\n**🔢 佇列位置**\n${queue.songs.length}\n\n由 ${user.tag} 點播`;
+            const content = `### <a:check:1524601509772529665> 已加入播放佇列\n**${track.info.title}**\n\n**👤 歌手**\n${track.info.author}\n\n**⏱️ 時長**\n${this.formatDuration(track.info.length)}\n\n**🔢 佇列位置**\n${queue.songs.length}\n\n由 ${user.tag} 點播`;
             const text = new TextDisplayBuilder().setContent(content);
             const thumbnail = new ThumbnailBuilder().setURL(track.info.artworkUrl || `https://img.youtube.com/vi/${track.info.identifier}/hqdefault.jpg`);
             const section = new SectionBuilder().addTextDisplayComponents(text).setThumbnailAccessory(thumbnail);
-            const container = new ContainerBuilder().setAccentColor(Colors.Primary).addSectionComponents(section);
+            const container = new ContainerBuilder()
+                .setAccentColor(Colors.Primary)
+                .addSectionComponents(section)
+                .addActionRowComponents(
+                    new ActionRowBuilder().addComponents(
+                        new ButtonBuilder()
+                            .setLabel('🔗 前往播放來源')
+                            .setStyle(ButtonStyle.Link)
+                            .setURL(track.info.uri)
+                    )
+                );
 
             textChannel.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
         }
