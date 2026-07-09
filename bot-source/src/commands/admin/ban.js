@@ -59,7 +59,7 @@ module.exports = {
 
         try {
             await interaction.guild.members.ban(user, { reason: `By ${interaction.user.tag}: ${reason}` });
-            await bot.sendSuccess(interaction, '🔨 封鎖成功', `<:check:1524601509772529665> 已成功封鎖 **${user.tag}**\n原因: \`${reason}\``);
+            await bot.sendSuccess(interaction, '🔨 封鎖成功', `<:custom_check:1524601509772529665> 已成功封鎖 **${user.tag}**\n原因: \`${reason}\``);
         } catch (err) {
             console.error('[Ban CMD]', err);
             bot.sendError(interaction, '執行失敗', '封鎖過程中發生內部錯誤，請稍後再試。');
