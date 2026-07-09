@@ -84,7 +84,7 @@ module.exports = {
 
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Primary)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 搜尋結果`))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🎶 搜尋結果`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`以下是關鍵字 \`${query}\` 的匹配項, 請從下方選單選擇:\n\n選單將在 25 秒後失效`));
 

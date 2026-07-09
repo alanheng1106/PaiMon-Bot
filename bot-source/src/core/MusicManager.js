@@ -83,7 +83,7 @@ class MusicManager {
             });
             player.on('closed', () => this.queues.delete(guild.id));
 
-            this.queues.set(guild.id, { player, songs: [], textChannel, loop: 'none' });
+            this.queues.set(guild.id, { player, songs: [], textChannel, voiceChannelId: channelId, loop: 'none' });
 
             // Restore saved volume from settings
             const savedVolume = this.bot.settings?.get(guild.id, 'volume');
@@ -117,11 +117,17 @@ class MusicManager {
             }
             // Suppress now-playing embed for TTS, resume, or track loop repeats
             if (!song.isTTS && !song.resumePosition && queue.loop !== 'track') {
+                const content = `**${song.title}**\n\n**🎤 歌手**\n${song.author}\n\n**⏱️ 時長**\n${this.formatDuration(song.duration)}\n\n**👤 點播者**\n<@${song.requester.id}>\n\n**🔊 語音頻道**\n<#${queue.voiceChannelId}>`;
+                
                 const container = new ContainerBuilder()
                     .setAccentColor(Colors.Primary)
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 正在播放`))
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🎶 正在播放`))
                     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`**${song.title}** - ${song.author}`))
+                    .addSectionComponents(
+                        new SectionBuilder()
+                            .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
+                            .setThumbnailAccessory(new ThumbnailBuilder().setURL(song.thumbnail))
+                    )
                     .addActionRowComponents(
                         new ActionRowBuilder().addComponents(
                             new ButtonBuilder()
