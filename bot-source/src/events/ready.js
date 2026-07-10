@@ -1,4 +1,4 @@
-const { Events } = require('discord.js');
+const { Events, ActivityType } = require('discord.js');
 
 module.exports = {
     name: Events.ClientReady,
@@ -23,7 +23,7 @@ module.exports = {
             }
 
             bot.user.setPresence({
-                activities: [{ name: '直接標記我來聊天!', type: 0 }],
+                activities: [{ name: 'Custom Status', type: ActivityType.Custom, state: '原神 启动!' }],
                 status: 'dnd'
             });
         } catch (error) {
