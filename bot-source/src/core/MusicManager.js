@@ -184,9 +184,21 @@ class MusicManager {
         if (wasEmpty) await this.processQueue(voiceChannel.guild.id);
         else if (!options.isTTS) {
             const content = `**🎵 歌名**\n${track.info.title}\n\n**🎤 歌手**\n${track.info.author}\n\n**⏱️ 時長**\n${this.formatDuration(track.info.length)}\n\n**🔢 佇列位置**\n第 ${queue.songs.length} 首\n\n**👤 點播者**\n<@${user.id}>`;
-            const thumbnail = new ThumbnailBuilder().setURL(track.info.artworkUrl || `https://img.youtube.com/vi/${track.info.identifier}/hqdefault.jpg`);
+            const thumbnailURL = track.info.artworkUrl || `https://img.youtube.com/vi/${track.info.identifier}/hqdefault.jpg`;
+            const thumbnail = new ThumbnailBuilder().setURL(thumbnailURL);
+
+            let accentColor = Colors.Primary;
+            try {
+                const colorData = await getAverageColor(thumbnailURL);
+                if (colorData && colorData.hex) {
+                    accentColor = parseInt(colorData.hex.slice(1), 16);
+                }
+            } catch (err) {
+                // Ignore color extraction errors
+            }
+
             const container = new ContainerBuilder()
-                .setAccentColor(Colors.Primary)
+                .setAccentColor(accentColor)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已加入播放佇列`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addSectionComponents(
