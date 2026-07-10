@@ -19,38 +19,30 @@ module.exports = {
 
     category: 'music',
     cooldown: 3,
-    helpText: '🔹 `/play [曲名或 URL]` - 搜尋並播放歌曲，支援 YouTube 關鍵字或直接貼上連結（包含播放清單）',
+    helpText: '🔹 `/play [曲名或 URL]` - 搜尋並播放歌曲, 支援 YouTube 關鍵字或直接貼上連結 (包含播放清單)',
     async execute(interaction, bot) {
         await interaction.deferReply();
         const voiceChannel = interaction.member?.voice?.channel;
-        if (!voiceChannel) return bot.sendError(interaction, '語音連線遭拒', '你必須先加入一個語音頻道!');
+        if (!voiceChannel) return bot.sendError(interaction, '語音連線遭拒', '你要先加入語音頻道!');
 
         const permissions = voiceChannel.permissionsFor(interaction.guild.members.me);
         if (!permissions.has(['Connect', 'Speak'])) {
-            return bot.sendError(
-                interaction,
-                '權限被拒絕',
-                '我在此頻道缺少 `連線 (Connect)` 或 `說話 (Speak)` 的權限, 無法進入!'
-            );
+                '我在這個頻道缺少 `連線 (Connect)` 或 `說話 (Speak)` 的權限, 進不去!'
         }
 
         const botVoiceChannel = interaction.guild.members.me.voice.channel;
         if (botVoiceChannel && botVoiceChannel.id !== voiceChannel.id) {
-            return bot.sendError(
-                interaction,
-                '不在同一頻道',
-                `我已經在一個語音頻道（<#${botVoiceChannel.id}>）中了, 請跟我到同一個頻道!`
-            );
+                `我已經在 <#${botVoiceChannel.id}> 裡了, 請到同一個頻道!`
         }
 
         const query = interaction.options.getString('query', true).trim();
 
         // 1. Input Sanity Check
         if (query.length < 2) {
-            return bot.sendError(interaction, '搜尋詞過短', '請輸入至少 2 個字元以進行有效的搜尋!');
+            return bot.sendError(interaction, '搜尋詞過短', '關鍵字至少要 2 個字!');
         }
         if (query.length > 500) {
-            return bot.sendError(interaction, '搜尋詞過長', '搜尋關鍵字不能超過 500 個字元! 請精簡你的提示');
+            return bot.sendError(interaction, '搜尋詞過長', '關鍵字不能超過 500 個字!');
         }
 
         try {
@@ -86,7 +78,7 @@ module.exports = {
                 .setAccentColor(Colors.Primary)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🎶 搜尋結果`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`以下是關鍵字 \`${query}\` 的匹配項, 請從下方選單選擇:\n\n選單將在 25 秒後失效`));
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`以下是 \`${query}\` 的搜尋結果, 請從下方選單選擇:\n\n選單將在 25 秒後失效`));
 
             const response = await interaction.followUp({
                 components: [container, new ActionRowBuilder().addComponents(selectMenu)],
@@ -102,15 +94,15 @@ module.exports = {
                 .then(async (i) => {
                     const selectedTrack = results[parseInt(i.values[0])];
 
-                    const text = new TextDisplayBuilder().setContent('⌛ **正在處理選中的歌曲，請稍待片刻...**');
+                    const text = new TextDisplayBuilder().setContent('⌛ **正在處理選中的歌曲, 請稍候...**');
                     const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
 
                     await i.update({ components: [container], flags: MessageFlags.IsComponentsV2 });
                     await bot.music.play(voiceChannel, interaction.channel, selectedTrack, interaction.user);
                 })
                 .catch(() => {
-                    const text = new TextDisplayBuilder().setContent('**選擇已超時或取消**');
-                    const container = new ContainerBuilder().setAccentColor(Colors.Error).addTextDisplayComponents(text);
+                    const text = new TextDisplayBuilder().setContent('### ⏰ 選擇已超時或取消');
+                    const container = new ContainerBuilder().setAccentColor(Colors.Warning).addTextDisplayComponents(text);
 
                     interaction
                         .editReply({ components: [container], flags: MessageFlags.IsComponentsV2 })
@@ -118,7 +110,7 @@ module.exports = {
                 });
         } catch (err) {
             console.error('[Play CMD]', err.message);
-            bot.sendError(interaction, '播放中斷', '處理請求時發生內部錯誤，請稍後再試。');
+            bot.sendError(interaction, '播放中斷', '處理時出了點問題, 請稍後再試.');
         }
     }
 };

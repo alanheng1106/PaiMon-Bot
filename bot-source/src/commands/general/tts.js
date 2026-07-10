@@ -23,31 +23,31 @@ module.exports = {
         ),
     category: 'general',
     cooldown: 5,
-    helpText: '🔹 `/tts [文字] [語言]` - 將文字轉成語音並在語音頻道播放，支援繁中、英文、日文等多種語言',
+    helpText: '🔹 `/tts [文字] [語言]` - 將文字轉成語音在語音頻道播放, 支援繁中, 英文, 日文等多種語言',
     async execute(interaction, bot) {
         await interaction.deferReply();
         const voiceChannel = interaction.member?.voice?.channel;
-        if (!voiceChannel) return bot.sendError(interaction, '語音錯誤', '你必須先加入一個語音頻道！');
+        if (!voiceChannel) return bot.sendError(interaction, '語音錯誤', '你要先加入語音頻道!');
 
         const permissions = voiceChannel.permissionsFor(interaction.guild.members.me);
         if (!permissions.has(['Connect', 'Speak'])) {
             return bot.sendError(
                 interaction,
                 '權限被拒絕',
-                '我在此頻道缺少 `連線 (Connect)` 或 `說話 (Speak)` 的權限！'
+                '我在這個頻道缺少 `連線 (Connect)` 或 `說話 (Speak)` 的權限!'
             );
         }
 
         const botVoiceChannel = interaction.guild.members.me.voice.channel;
         if (botVoiceChannel && botVoiceChannel.id !== voiceChannel.id) {
-            return bot.sendError(interaction, '不在同一頻道', `我已經在一個語音頻道（<#${botVoiceChannel.id}>）中！`);
+            return bot.sendError(interaction, '不在同一頻道', `我已經在語音頻道 (<#${botVoiceChannel.id}>) 裡了!`);
         }
 
         const text = interaction.options.getString('text', true).trim();
         const lang = interaction.options.getString('lang') || 'zh-TW';
 
         if (text.length > 200) {
-            return bot.sendError(interaction, '字數過長', '文字不能超過 200 個字元！');
+            return bot.sendError(interaction, '字數過長', '文字不能超過 200 個字元!');
         }
 
         try {
@@ -59,7 +59,7 @@ module.exports = {
 
             const { tracks } = await bot.music.search(url);
             if (!tracks?.length) {
-                return bot.sendError(interaction, 'TTS 錯誤', '無法生成語音。');
+                return bot.sendError(interaction, 'TTS 錯誤', '無法產生語音.');
             }
 
             const track = tracks[0];
@@ -68,10 +68,10 @@ module.exports = {
 
             await bot.music.play(voiceChannel, interaction.channel, track, interaction.user, { isTTS: true });
 
-            await bot.sendSuccess(interaction, '🗣️ 文字轉語音', `**內容：** ${text}\n**語言：** ${lang}`);
+            await bot.sendSuccess(interaction, '🗣️ 文字轉語音', `**內容:** ${text}\n**語言:** ${lang}`);
         } catch (error) {
             console.error('[TTS CMD]', error.message);
-            bot.sendError(interaction, 'TTS 錯誤', 'TTS 處理時發生內部錯誤，請稍後再試。');
+            bot.sendError(interaction, 'TTS 錯誤', 'TTS 處理時出了點問題, 請稍後再試.');
         }
     }
 };

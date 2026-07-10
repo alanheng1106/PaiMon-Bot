@@ -10,14 +10,14 @@ module.exports = {
 
         // 1. Validation
         if (!botVoiceChannel) {
-            return bot.sendError(interaction, '無連線', '我目前沒有在任何語音頻道中!');
+            return bot.sendError(interaction, '無連線', '我目前不在任何語音頻道!');
         }
 
         if (!voiceChannel || botVoiceChannel.id !== voiceChannel.id) {
             return bot.sendError(
                 interaction,
                 '不在同一頻道',
-                `你必須跟我（<#${botVoiceChannel.id}>）在同一個頻道才能讓我離開!`
+                `你要跟我在同一個頻道 (<#${botVoiceChannel.id}>) 才能讓我離開!`
             );
         }
 

@@ -3,9 +3,9 @@ const os = require('os');
 const { Colors } = require('../../config');
 
 module.exports = {
-    data: new SlashCommandBuilder().setName('about').setDescription('關於系統'),
+    data: new SlashCommandBuilder().setName('about').setDescription('系統資訊'),
     category: 'general',
-    helpText: '🔹 `/about` - 顯示機器人的系統狀態、運行時長與資源使用情況',
+    helpText: '🔹 `/about` - 查看系統狀態, 運行時長與資源用量',
     async execute(interaction, bot) {
         const generateContainer = (disabled = false) => {
             // Process Stats
@@ -53,7 +53,7 @@ module.exports = {
         
         collector.on('collect', async (i) => {
             if (i.user.id !== interaction.user.id) {
-                return i.reply({ content: '您不能使用這個按鈕哦！請自己輸入 `/about`。', ephemeral: true });
+                return i.reply({ content: '這個按鈕不是你的哦! 請自己輸入 `/about` 來查看.', ephemeral: true });
             }
             if (i.customId === 'refresh_about') {
                 await i.update({ components: [generateContainer()], flags: MessageFlags.IsComponentsV2 });

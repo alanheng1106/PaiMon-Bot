@@ -13,11 +13,11 @@ module.exports = {
                 .setMinValue(1)
                 .setMaxValue(100)
         )
-        .addUserOption((option) => option.setName('user').setDescription('只刪除特定使用者的訊息（不填則刪除所有人）'))
+        .addUserOption((option) => option.setName('user').setDescription('只刪除特定成員的訊息 (不填則刪除所有人)'))
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
     category: 'admin',
     cooldown: 5,
-    helpText: '🔹 `/purge [數量] [使用者]` - 批量刪除最多 100 則訊息，可選擇只刪除特定成員的發言',
+    helpText: '🔹 `/purge [數量] [使用者]` - 批量刪除最多 100 則訊息, 可指定特定成員',
     async execute(interaction, bot) {
         const amount = interaction.options.getInteger('amount');
         const targetUser = interaction.options.getUser('user');
@@ -55,20 +55,20 @@ module.exports = {
                 return replyEmbed(
                     Colors.Warning,
                     '⚠️ 無可刪除訊息',
-                    '沒有可刪除的訊息。\n> 超過 14 天的訊息無法透過批量刪除清除。'
+                    '沒有可刪除的訊息.\n> 超過 14 天的訊息無法批量刪除.'
                 );
             }
 
             const deleted = await interaction.channel.bulkDelete(validMessages, true);
 
             let desc = `已成功刪除 **${deleted.size}** 則訊息`;
-            if (targetUser) desc += `（來自 **${targetUser.tag}**）`;
+            if (targetUser) desc += ` (來自 **${targetUser.tag}**)`;
             if (skipped > 0) desc += `\n> ⚠️ 已略過 **${skipped}** 則超過 14 天的舊訊息`;
 
             await replyEmbed(Colors.Success, '🗑️ 清除完成', desc);
         } catch (err) {
             console.error('[Purge CMD]', err);
-            replyEmbed(Colors.Error, '執行失敗', '刪除過程中發生錯誤，請確認機器人擁有 `管理訊息` 的權限。');
+            replyEmbed(Colors.Error, '執行失敗', '刪除時出了點問題, 請確認我有 `管理訊息` 的權限.');
         }
     }
 };

@@ -7,13 +7,13 @@ module.exports = {
     helpText: '🔹 `/loop` - 循環切換播放模式：關閉 → 🔂 單曲循環 → 🔁 佇列循環 → 關閉',
     async execute(interaction, bot) {
         const voiceChannel = interaction.member?.voice?.channel;
-        if (!voiceChannel) return bot.sendError(interaction, '語音連線遭拒', '你必須先加入一個語音頻道!');
+        if (!voiceChannel) return bot.sendError(interaction, '語音連線遭拒', '你要先加入語音頻道!');
 
         const botVoiceChannel = interaction.guild.members.me.voice.channel;
-        if (!botVoiceChannel) return bot.sendError(interaction, '操作無效', '我目前沒有在任何語音頻道中!');
+        if (!botVoiceChannel) return bot.sendError(interaction, '操作無效', '我目前不在任何語音頻道!');
 
         if (botVoiceChannel.id !== voiceChannel.id) {
-            return bot.sendError(interaction, '不在同一頻道', `你必須跟我（<#${botVoiceChannel.id}>）在同一個頻道!`);
+            return bot.sendError(interaction, '不在同一頻道', `你要跟我在同一個頻道 (<#${botVoiceChannel.id}>)!`);
         }
 
         const queue = bot.music.getQueue(interaction.guild.id);

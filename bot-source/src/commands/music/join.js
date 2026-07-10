@@ -9,7 +9,7 @@ module.exports = {
 
         // 1. Validation
         if (!voiceChannel) {
-            return bot.sendError(interaction, '語音連線遭拒', '你必須先加入一個語音頻道!');
+            return bot.sendError(interaction, '語音連線遭拒', '你要先加入語音頻道!');
         }
 
         const permissions = voiceChannel.permissionsFor(interaction.guild.members.me);

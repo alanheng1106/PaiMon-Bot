@@ -24,7 +24,7 @@ module.exports = {
                 const remaining = bot.cooldowns.check(interaction.commandName, interaction.user.id, command.cooldown);
                 if (remaining) {
                     return interaction.reply({
-                        content: `⏳ 冷卻中！請等待 **${remaining}** 秒後再試。`,
+                        content: `⏳ 冷卻中! 請等待 **${remaining}** 秒後再試.`,
                         flags: MessageFlags.Ephemeral
                     });
                 }
@@ -34,7 +34,7 @@ module.exports = {
                 await command.execute(interaction, bot);
             } catch (error) {
                 console.error(`[Exec: ${interaction.commandName}] Failed:`, error.message);
-                await bot.sendError(interaction, '系統核心攔截到預期外的錯誤', '指令執行時發生內部錯誤，請稍後再試。');
+                await bot.sendError(interaction, '發生未預期的錯誤', '指令執行時出了點問題, 請稍後再試.');
             }
             return;
         }
@@ -69,7 +69,7 @@ module.exports = {
                     .setAccentColor(Colors.Error)
                     .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:cross:1524603300752785550> 處理失敗'))
                     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('處理登入時發生錯誤，請稍後再試。'));
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent('處理登入時出了點問題, 請稍後再試.'));
                 const payload = { components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 };
                 if (interaction.deferred || interaction.replied) {
                     await interaction.followUp(payload).catch((e) => console.warn('Ignored error:', e.message));
@@ -101,10 +101,10 @@ async function _handleValUrlLogin(interaction, bot) {
     }
 
     // Success
-    const content = `**Riot ID：** ${result.riotId}\n**伺服器：** ${result.shard.toUpperCase()}\n\n現在可以使用 \`/store\` 查看你的每日商店了！\n\n💡 提示：此授權的有效期約為 1 小時，過期後需重新授權。`;
+    const content = `**Riot ID:** ${result.riotId}\n**伺服器:** ${result.shard.toUpperCase()}\n\n現在可以用 \`/store\` 查看你的每日商店了!\n\n💡 提示: 授權大約 1 小時後過期, 届時需要重新登入.`;
     const container = new ContainerBuilder()
         .setAccentColor(Colors.Success)
-        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 登入成功！`))
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 登入成功!`))
         .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
 

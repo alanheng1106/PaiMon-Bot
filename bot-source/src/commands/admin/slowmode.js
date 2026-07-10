@@ -14,7 +14,7 @@ module.exports = {
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
     category: 'admin',
-    helpText: '🔹 `/slowmode [秒數]` - 設定當前頻道的慢速模式，輸入 0 可關閉。最長 6 小時（21600 秒）',
+    helpText: '🔹 `/slowmode [秒數]` - 設定慢速模式, 輸入 0 可關閉. 最長 6 小時 (21600 秒)',
     async execute(interaction, bot) {
         const seconds = interaction.options.getInteger('seconds');
 
@@ -45,7 +45,7 @@ module.exports = {
             }
         } catch (err) {
             console.error('[Slowmode CMD]', err);
-            bot.sendError(interaction, '執行失敗', '設定慢速模式時發生內部錯誤，請確認機器人擁有 `管理頻道` 的權限。');
+            bot.sendError(interaction, '執行失敗', '設定慢速模式時出了點問題, 請確認我有 `管理頻道` 的權限.');
         }
     }
 };

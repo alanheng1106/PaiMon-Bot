@@ -99,7 +99,7 @@ class AIClient {
             this._promptTemplateCache = fs.readFileSync(promptPath, 'utf8').trim();
         } catch (err) {
             console.error('[AIClient] Failed to load system-prompt.txt, using fallback:', err.message);
-            this._promptTemplateCache = '今天是 {{date}}。你是一個有幫助的助手。';
+            this._promptTemplateCache = '今天是 {{date}}. 你是一個有幫助的助手.';
         }
         return this._promptTemplateCache;
     }
@@ -252,7 +252,7 @@ class AIClient {
                             history.push({
                                 role: 'tool',
                                 name: toolCall.function.name,
-                                content: `當前系統時間：${now}`
+                                content: `當前系統時間: ${now}`
                             });
                         } else if (toolCall.function.name === 'web_search') {
                             const { query } = toolCall.function.arguments;

@@ -267,7 +267,7 @@ class ValorantClient {
             const tokens = this._parseTokenFromUri(authUrl);
 
             if (!tokens.accessToken || !tokens.idToken) {
-                return { error: '網址無效或缺少授權 Token，請確認是否複製完整。' };
+                return { error: '網址無效或缺少授權 Token, 請確認是否複製完整.' };
             }
 
             const authResult = {
@@ -279,7 +279,7 @@ class ValorantClient {
             return this._completeLogin(discordUserId, authResult);
         } catch (err) {
             console.error('[Valorant] loginWithUrl error:', err);
-            return { error: `網址解析失敗：${err.message}` };
+            return { error: `網址解析失敗: ${err.message}` };
         }
     }
 
@@ -413,7 +413,7 @@ class ValorantClient {
             return { success: true, riotId, shard: geo.shard, region: geo.region };
         } catch (err) {
             console.error('[Valorant] _completeLogin error:', err);
-            return { error: `登入完成階段失敗：${err.message}` };
+            return { error: `登入完成階段失敗: ${err.message}` };
         }
     }
 

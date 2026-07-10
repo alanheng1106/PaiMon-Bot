@@ -10,7 +10,7 @@ module.exports = {
         // Check if actually locked
         const everyonePerms = channel.permissionOverwrites.cache.get(interaction.guild.id);
         if (!everyonePerms?.deny.has(PermissionsBitField.Flags.SendMessages)) {
-            return bot.sendError(interaction, '頻道未鎖定', '此頻道目前並沒有被鎖定！');
+            return bot.sendError(interaction, '頻道未鎖定', '這個頻道目前沒有被鎖定!');
         }
 
         try {
@@ -25,11 +25,11 @@ module.exports = {
             await bot.sendSuccess(
                 interaction,
                 '🔓 頻道已解鎖',
-                `**#${channel.name}** 已解鎖，成員可以重新正常發言。`
+                `**#${channel.name}** 已解鎖, 成員可以正常發言了.`
             );
         } catch (err) {
             console.error('[Unlock CMD]', err);
-            bot.sendError(interaction, '執行失敗', '解鎖頻道時發生內部錯誤，請確認機器人擁有 `管理頻道` 的權限。');
+            bot.sendError(interaction, '執行失敗', '解鎖頻道時出了點問題, 請確認我有 `管理頻道` 的權限.');
         }
     }
 };

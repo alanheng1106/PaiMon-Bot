@@ -11,6 +11,8 @@ module.exports = {
         Error: 0xed4245, // Distinct Red for alerts
         Success: 0x57f287, // Vibrant Green for confirmation
         Warning: 0xfee75c, // Amber Yellow for caution
+        Punish: 0xf47b67, // Soft Coral — punitive actions (kick/ban/timeout/warn)
+        Info: 0x5865f2, // Discord Blurple — informational queries
         Music: 0x5865f2, // Classic Discord Blurple
         AI: 0xffd21e, // Bright Yellow for Intelligence
         Valorant: 0xfd4556 // Valorant Signature Red

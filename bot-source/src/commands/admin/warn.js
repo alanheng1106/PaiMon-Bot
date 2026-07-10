@@ -9,21 +9,21 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
     category: 'admin',
     cooldown: 3,
-    helpText: '🔹 `/warn [成員] [原因]` - 警告成員並記錄，累積次數可用 `/warnings` 查詢',
+    helpText: '🔹 `/warn [成員] [原因]` - 警告成員並記錄, 累積次數可用 `/warnings` 查詢',
     async execute(interaction, bot) {
         const user = interaction.options.getUser('user');
         const reason = interaction.options.getString('reason');
         const member = await interaction.guild.members.fetch(user.id).catch(() => null);
 
         if (!member) return bot.sendError(interaction, '查無成員', '在伺服器中找不到該使用者');
-        if (user.id === interaction.user.id) return bot.sendError(interaction, '操作無效', '你不能警告你自己！');
-        if (user.id === bot.user.id) return bot.sendError(interaction, '操作無效', '你不能警告我！');
+        if (user.id === interaction.user.id) return bot.sendError(interaction, '操作無效', '你不能警告你自己!');
+        if (user.id === bot.user.id) return bot.sendError(interaction, '操作無效', '你不能警告我!');
 
         if (
             interaction.member.roles.highest.position <= member.roles.highest.position &&
             interaction.guild.ownerId !== interaction.user.id
         ) {
-            return bot.sendError(interaction, '權限等級不足', `你最高的身分組低於或等於 **${user.tag}**，無法執行`);
+            return bot.sendError(interaction, '權限等級不足', `你的最高身分組不高於 **${user.tag}**, 無法執行`);
         }
 
         // Load current warnings from guild settings
@@ -44,15 +44,21 @@ module.exports = {
         // DM target (best effort)
         await user
             .send(
-                `⚠️ 你在 **${interaction.guild.name}** 收到了一個警告（共 ${warnCount} 次）。\n📋 原因：\`${reason}\``
+                `⚠️ 你在 **${interaction.guild.name}** 收到一次警告 (共 ${warnCount} 次).\n📋 原因: \`${reason}\``
             )
             .catch((e) => console.warn('Ignored error:', e.message));
 
         const timestamp = Math.floor(Date.now() / 1000);
-        const content = `**👤 被執行者**\n${user.tag} (\`${user.id}\`)\n\n**👮 執行者**\n${interaction.user.tag} (\`${interaction.user.id}\`)\n\n**🕒 執行時間**\n<t:${timestamp}:f>\n\n**📊 累積警告**\n共 ${warnCount} 次\n\n**📋 執行原因**\n${reason}`;
+        const content = `> **👤 被執行者**　${user.tag} (\`${user.id}\`)
+> **👮 執行者**　${interaction.user.tag} (\`${interaction.user.id}\`)
+> **🕒 執行時間**　<t:${timestamp}:f>
+> **📊 累積警告**　共 ${warnCount} 次
+
+**📋 執行原因**
+${reason}`;
         
         const container = new ContainerBuilder()
-            .setAccentColor(Colors.Warning || Colors.Success) // Fallback to Success if Warning is not defined
+            .setAccentColor(Colors.Warning)
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 警告已記錄`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addSectionComponents(

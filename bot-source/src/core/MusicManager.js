@@ -183,13 +183,17 @@ class MusicManager {
 
         if (wasEmpty) await this.processQueue(voiceChannel.guild.id);
         else if (!options.isTTS) {
-            const content = `### <a:check:1524601509772529665> 已加入播放佇列\n**${track.info.title}**\n\n**👤 歌手**\n${track.info.author}\n\n**⏱️ 時長**\n${this.formatDuration(track.info.length)}\n\n**🔢 佇列位置**\n${queue.songs.length}\n\n由 ${user.tag} 點播`;
-            const text = new TextDisplayBuilder().setContent(content);
+            const content = `**🎵 歌名**\n${track.info.title}\n\n**🎤 歌手**\n${track.info.author}\n\n**⏱️ 時長**\n${this.formatDuration(track.info.length)}\n\n**🔢 佇列位置**\n第 ${queue.songs.length} 首\n\n**👤 點播者**\n<@${user.id}>`;
             const thumbnail = new ThumbnailBuilder().setURL(track.info.artworkUrl || `https://img.youtube.com/vi/${track.info.identifier}/hqdefault.jpg`);
-            const section = new SectionBuilder().addTextDisplayComponents(text).setThumbnailAccessory(thumbnail);
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Primary)
-                .addSectionComponents(section)
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已加入播放佇列`))
+                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+                .addSectionComponents(
+                    new SectionBuilder()
+                        .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
+                        .setThumbnailAccessory(thumbnail)
+                )
                 .addActionRowComponents(
                     new ActionRowBuilder().addComponents(
                         new ButtonBuilder()
@@ -219,7 +223,7 @@ class MusicManager {
             })
         );
 
-        const content = `**${playlistName}**\n\n**🎶 歌曲數量**\n${tracks.length} 首\n\n**👤 點播者**\n${user.tag}\n\nRequested by ${user.tag}`;
+        const content = `**${playlistName}**\n\n**🎶 歌曲數量**\n${tracks.length} 首\n\n**👤 點播者**\n${user.tag}`;
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Primary)
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已加載整個播放清單`))

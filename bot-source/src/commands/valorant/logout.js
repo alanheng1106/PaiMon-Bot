@@ -13,7 +13,7 @@ const { Colors } = require('../../config');
 module.exports = {
     data: new SlashCommandBuilder().setName('logout').setDescription('登出你的 Riot 帳號'),
     category: 'valorant',
-    helpText: '🔹 `/logout` - 登出已登入的 Riot 帳號（支援單獨或全部登出）',
+    helpText: '🔹 `/logout` - 登出 Riot 帳號 (支援單獨或全部登出)',
 
     async execute(interaction, bot) {
         const userId = interaction.user.id;
@@ -24,7 +24,7 @@ module.exports = {
                 .setAccentColor(Colors.Warning)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 無需登出'))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent('你目前沒有任何已登入的 Riot 帳號。'));
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('你目前沒有任何已登入的 Riot 帳號.'));
             return interaction.reply({ components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
         }
 
@@ -50,10 +50,10 @@ module.exports = {
 
         // Add "logout all" option
         options.push({
-            label: '🗑️ 全部登出',
+            label: '全部登出',
             value: '__all__',
             emoji: '🗑️',
-            description: '登出所有已登入的帳號'
+            description: '登出全部帳號'
         });
 
         const selectMenu = new StringSelectMenuBuilder()
@@ -89,7 +89,7 @@ module.exports = {
                     .setAccentColor(Colors.Success)
                     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已全部登出`))
                     .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`已成功登出所有 **${riotIds.length}** 個帳號。`));
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`已成功登出所有 **${riotIds.length}** 個帳號.`));
                 await selection.update({ components: [container], flags: MessageFlags.IsComponentsV2 });
             } else {
                 bot.valorant.removeSession(userId, selected);
@@ -103,9 +103,9 @@ module.exports = {
         } catch {
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Warning)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 操作逾時'))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('### ⏰ 操作逾時'))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent('未在時間內選擇，請重新使用 `/logout`。'));
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent('超時未選擇, 請重新用 `/logout`.'));
             await interaction
                 .editReply({ components: [container], flags: MessageFlags.IsComponentsV2 })
                 .catch((e) => console.warn('Ignored error:', e.message));

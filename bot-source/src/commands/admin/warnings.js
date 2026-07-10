@@ -8,7 +8,7 @@ module.exports = {
         .addUserOption((option) => option.setName('user').setDescription('要查詢的成員').setRequired(true))
         .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
     category: 'admin',
-    helpText: '🔹 `/warnings [成員]` - 查看指定成員的所有警告記錄（原因、時間、發出者）',
+    helpText: '🔹 `/warnings [成員]` - 查看指定成員的警告記錄 (原因, 時間, 發出者)',
     async execute(interaction, bot) {
         const user = interaction.options.getUser('user');
 
@@ -16,7 +16,7 @@ module.exports = {
         const userWarnings = guildWarnings[user.id] ?? [];
 
         if (userWarnings.length === 0) {
-            return bot.sendSuccess(interaction, '📋 警告記錄', `**${user.tag}** 目前沒有任何警告記錄。`, true);
+            return bot.sendSuccess(interaction, '📋 警告記錄', `**${user.tag}** 目前沒有任何警告記錄.`, true);
         }
 
         // Show last 10 warnings
@@ -29,14 +29,17 @@ module.exports = {
             })
             .join('\n');
 
-        const content = `${warnLines}\n\n共 ${userWarnings.length} 次警告${userWarnings.length > 10 ? '（僅顯示最近 10 次）' : ''}`;
+        const content = `${warnLines}\n\n共 ${userWarnings.length} 次警告${userWarnings.length > 10 ? ' (僅顯示最近 10 次)' : ''}`;
         const thumbnail = new ThumbnailBuilder().setURL(user.displayAvatarURL());
-        const section = new SectionBuilder()
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 警告記錄 — ${user.tag}`))
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Warning)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ⚠️ 警告記錄 — ${user.tag}`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
-            .setThumbnailAccessory(thumbnail);
-        const container = new ContainerBuilder().setAccentColor(Colors.Error).addSectionComponents(section);
+            .addSectionComponents(
+                new SectionBuilder()
+                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
+                    .setThumbnailAccessory(thumbnail)
+            );
 
         await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
     }

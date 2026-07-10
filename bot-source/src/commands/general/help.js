@@ -21,14 +21,14 @@ const CATEGORY_META = {
 module.exports = {
     data: new SlashCommandBuilder().setName('help').setDescription('顯示所有可用指令與詳細說明'),
     category: 'general',
-    helpText: '🔹 `/help` - 開啟互動式指令手冊，選擇類別查看詳細說明',
+    helpText: '🔹 `/help` - 開啟互動式指令手冊, 選擇類別查看詳細說明',
     async execute(interaction, bot) {
         const generateHomeEmbed = () => {
             const categoryList = Object.values(CATEGORY_META)
                 .map((m) => `${m.emoji} **${m.label}**`)
                 .join('\n');
 
-            const content = `歡迎使用指令手冊！請從下方選單選擇想了解的類別。\n\n**可用類別：**\n${categoryList}`;
+            const content = `歡迎使用指令手冊! 從下方選單選擇想了解的類別.\n\n**可用類別:**\n${categoryList}`;
             return new ContainerBuilder()
                 .setAccentColor(Colors.Primary)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <:logo:1524714133780434994> 指令手冊 - 首頁`))
@@ -44,7 +44,7 @@ module.exports = {
             const commands = [...bot.commands.values()].filter((cmd) => cmd.category === category);
             const description =
                 commands.length === 0
-                    ? '此類別目前沒有可用指令。'
+                    ? '這個類別目前沒有可用指令.'
                     : commands
                         .map((cmd) => cmd.helpText ?? `🔹 \`/${cmd.data.name}\` - ${cmd.data.description}`)
                         .join('\n');
@@ -87,7 +87,7 @@ module.exports = {
 
         collector.on('collect', async (i) => {
             if (i.user.id !== interaction.user.id) {
-                return i.reply({ content: '您不能使用這個選單哦！請自己輸入 `/help` 來開啟。', ephemeral: true });
+                return i.reply({ content: '這個選單不是你的哦! 請自己輸入 `/help` 來開啟.', ephemeral: true });
             }
 
             const selected = i.values[0];
