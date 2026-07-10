@@ -11,7 +11,7 @@ const {
     MessageFlags
 } = require('discord.js');
 const { Colors } = require('../../config');
-
+const { getAverageColor } = require('fast-average-color-node');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('avatar')
@@ -27,9 +27,19 @@ module.exports = {
         // Fetch high-resolution avatar URL
         const avatarUrl = targetUser.displayAvatarURL({ size: 1024, extension: 'png' });
 
+        let accentColor = Colors.Info;
+        try {
+            const colorData = await getAverageColor(avatarUrl);
+            if (colorData && colorData.hex) {
+                accentColor = parseInt(colorData.hex.slice(1), 16);
+            }
+        } catch (err) {
+            // Ignore color extraction errors
+        }
+
         const container = new ContainerBuilder()
-            .setAccentColor(Colors.Info)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> ${targetUser.tag} 的大頭貼`))
+            .setAccentColor(accentColor)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🖼️ ${targetUser.tag} 的大頭貼`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addMediaGalleryComponents(
                 new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL(avatarUrl))
