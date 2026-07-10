@@ -35,7 +35,7 @@ module.exports = {
         bot.settings.set(interaction.guild.id, 'volume', volume);
 
         const container = new ContainerBuilder()
-            .setAccentColor(Colors.Primary)
+            .setAccentColor(Colors.Music)
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 音量調整`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`播放音量已設定為 **${volume}%**`));

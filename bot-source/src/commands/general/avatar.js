@@ -28,7 +28,7 @@ module.exports = {
         const avatarUrl = targetUser.displayAvatarURL({ size: 1024, extension: 'png' });
 
         const container = new ContainerBuilder()
-            .setAccentColor(Colors.Primary)
+            .setAccentColor(Colors.Info)
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> ${targetUser.tag} 的大頭貼`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addMediaGalleryComponents(

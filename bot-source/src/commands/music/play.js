@@ -75,7 +75,7 @@ module.exports = {
                 );
 
             const container = new ContainerBuilder()
-                .setAccentColor(Colors.Primary)
+                .setAccentColor(Colors.Music)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🎶 搜尋結果`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`以下是 \`${query}\` 的搜尋結果, 請從下方選單選擇:\n\n選單將在 25 秒後失效`));
@@ -95,7 +95,7 @@ module.exports = {
                     const selectedTrack = results[parseInt(i.values[0])];
 
                     const text = new TextDisplayBuilder().setContent('⌛ **正在處理選中的歌曲, 請稍候...**');
-                    const container = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
+                    const container = new ContainerBuilder().setAccentColor(Colors.Music).addTextDisplayComponents(text);
 
                     await i.update({ components: [container], flags: MessageFlags.IsComponentsV2 });
                     await bot.music.play(voiceChannel, interaction.channel, selectedTrack, interaction.user);

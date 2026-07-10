@@ -113,7 +113,7 @@ class MusicManager {
             if (!song.isTTS && !song.resumePosition && queue.loop !== 'track') {
                 const content = `**🎵 歌名**\n${song.title}\n\n**🎤 歌手**\n${song.author}\n\n**⏱️ 時長**\n${this.formatDuration(song.duration)}\n\n**👤 點播者**\n<@${song.requester.id}>\n\n**🔊 語音頻道**\n<#${queue.voiceChannelId}>`;
                 
-                let accentColor = Colors.Primary;
+                let accentColor = Colors.Music;
                 try {
                     const colorData = await getAverageColor(song.thumbnail);
                     if (colorData && colorData.hex) {
@@ -187,7 +187,7 @@ class MusicManager {
             const thumbnailURL = track.info.artworkUrl || `https://img.youtube.com/vi/${track.info.identifier}/hqdefault.jpg`;
             const thumbnail = new ThumbnailBuilder().setURL(thumbnailURL);
 
-            let accentColor = Colors.Primary;
+            let accentColor = Colors.Music;
             try {
                 const colorData = await getAverageColor(thumbnailURL);
                 if (colorData && colorData.hex) {
@@ -237,7 +237,7 @@ class MusicManager {
 
         const content = `**${playlistName}**\n\n**🎶 歌曲數量**\n${tracks.length} 首\n\n**👤 點播者**\n${user.tag}`;
         const container = new ContainerBuilder()
-            .setAccentColor(Colors.Primary)
+            .setAccentColor(Colors.Music)
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已加載整個播放清單`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));

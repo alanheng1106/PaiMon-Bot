@@ -15,7 +15,7 @@ module.exports = {
 
         const content = `**🎵 歌名**\n${currentSong.title}\n\n**🎤 歌手**\n${currentSong.author}\n\n**⏱️ 時長**\n${bot.music.formatDuration(currentSong.duration)}\n\n**👤 點播者**\n<@${currentSong.requester.id}>\n\n**🔊 語音頻道**\n<#${queue.voiceChannelId}>\n\n**📊 播放進度**\n${bot.music.createProgressBar(player.position, currentSong.duration)}`;
         
-        let accentColor = Colors.Primary;
+        let accentColor = Colors.Music;
         try {
             const colorData = await getAverageColor(currentSong.thumbnail);
             if (colorData && colorData.hex) {

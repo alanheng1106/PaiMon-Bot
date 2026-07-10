@@ -26,7 +26,7 @@ module.exports = {
         bot.music.resume(interaction.guild.id);
 
         const container = new ContainerBuilder()
-            .setAccentColor(Colors.Primary)
+            .setAccentColor(Colors.Music)
             .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 恢復播放'))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent('音樂播放已成功恢復'));

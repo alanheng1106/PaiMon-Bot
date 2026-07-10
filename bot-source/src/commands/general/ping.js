@@ -7,7 +7,7 @@ module.exports = {
     helpText: '🔹 `/ping` - 查看機器人目前的 WebSocket 與回應延遲',
     async execute(interaction, bot) {
         const text = new TextDisplayBuilder().setContent('🔍 正在偵測系統延遲...');
-        const initialContainer = new ContainerBuilder().setAccentColor(Colors.Primary).addTextDisplayComponents(text);
+        const initialContainer = new ContainerBuilder().setAccentColor(Colors.Info).addTextDisplayComponents(text);
 
         await interaction.reply({ components: [initialContainer], flags: MessageFlags.IsComponentsV2 });
         const sent = await interaction.fetchReply();

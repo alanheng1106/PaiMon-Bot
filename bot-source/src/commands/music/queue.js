@@ -31,7 +31,7 @@ module.exports = {
 
         const content = `${trackList}\n\n**📊 統計資料**\n總共: **${songs.length}** 首歌 | 總時長: **${bot.music.formatDuration(totalDurationMs)}**${footerText}`;
         
-        let accentColor = Colors.Primary;
+        let accentColor = Colors.Music;
         try {
             const colorData = await getAverageColor(currentSong.thumbnail);
             if (colorData && colorData.hex) {

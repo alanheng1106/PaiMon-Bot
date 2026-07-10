@@ -23,7 +23,7 @@ module.exports = {
         bot.music.stop(interaction.guild.id);
 
         const container = new ContainerBuilder()
-            .setAccentColor(Colors.Primary)
+            .setAccentColor(Colors.Music)
             .addTextDisplayComponents(new TextDisplayBuilder().setContent('### <a:check:1524601509772529665> 停止播放'))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent('播放已停止且佇列已清空'));

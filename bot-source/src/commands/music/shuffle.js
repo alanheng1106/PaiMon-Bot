@@ -35,7 +35,7 @@ module.exports = {
         queue.songs = [current, ...rest];
 
         const container = new ContainerBuilder()
-            .setAccentColor(Colors.Primary)
+            .setAccentColor(Colors.Music)
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 佇列已打亂`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`已隨機打亂 **${rest.length}** 首歌曲的播放順序`));

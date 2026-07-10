@@ -32,7 +32,7 @@ module.exports = {
                 .setDisabled(disabled);
 
             return new ContainerBuilder()
-                .setAccentColor(Colors.Primary)
+                .setAccentColor(Colors.Info)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🤖 系統資訊`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addSectionComponents(

@@ -30,7 +30,7 @@ module.exports = {
 
             const content = `歡迎使用指令手冊! 從下方選單選擇想了解的類別.\n\n**可用類別:**\n${categoryList}`;
             return new ContainerBuilder()
-                .setAccentColor(Colors.Primary)
+                .setAccentColor(Colors.Info)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <:logo:1524714133780434994> 指令手冊 - 首頁`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
@@ -51,7 +51,7 @@ module.exports = {
 
             const content = `${description}`;
             return new ContainerBuilder()
-                .setAccentColor(Colors.Primary)
+                .setAccentColor(Colors.Info)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${meta.emoji} ${meta.label}`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
