@@ -20,12 +20,6 @@ module.exports = {
             'https://auth.riotgames.com/authorize?redirect_uri=https%3A%2F%2Fplayvalorant.com%2Fopt_in&client_id=play-valorant-web-prod&response_type=token%20id_token&nonce=1&scope=account%20openid';
 
         const content = `為了突破 Riot 防火牆並支援手機驗證, 我們使用官方網頁授權:\n\n1️⃣ 點擊下方 **[前往官方登入]**, 在瀏覽器完成登入.\n2️⃣ 登入成功後, 網頁會跳轉到一個**空白頁面**.\n3️⃣ 複製該空白頁面的**完整網址** (包含 \`#access_token=...\`).\n4️⃣ 點擊下方 **[貼上授權網址]**, 把網址貼上.\n\n⚠️ 注意: 授權大約 1 小時後過期, 届時需重新登入.\n\n安全提示: 我們不會儲存你的帳號密碼.`;
-        const container = new ContainerBuilder()
-            .setAccentColor(Colors.Valorant)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <:valorant:1525079890896883723> Valorant 帳號登入`))
-            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
-
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setLabel('前往官方登入').setURL(authUrl).setStyle(ButtonStyle.Link),
             new ButtonBuilder()
@@ -35,8 +29,15 @@ module.exports = {
                 .setEmoji('📋')
         );
 
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.Valorant)
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <:valorant:1525079890896883723> Valorant 帳號登入`))
+            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
+            .addActionRowComponents(row);
+
         await interaction.reply({
-            components: [container, row],
+            components: [container],
             flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
         });
     }
