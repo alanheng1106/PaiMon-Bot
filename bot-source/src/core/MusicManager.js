@@ -1,38 +1,61 @@
 const { Shoukaku, Connectors } = require('shoukaku');
-const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, ThumbnailBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
-const { Colors, Music: MusicConfig } = require('../config');
-const { getAverageColor } = require('fast-average-color-node');
+const { Music: MusicConfig } = require('../config');
+const MusicPresenter = require('./music/MusicPresenter');
 
+/**
+ * MusicManager — Core audio playback and queue domain service.
+ * Refactored for clean OOP / SOLID compliance:
+ * - UI Card rendering delegated to MusicPresenter (SRP)
+ * - State encapsulated via ES2022 private fields (#)
+ * - Decoupled from direct BotClient back-reference (DIP)
+ */
 class MusicManager {
-    constructor(bot) {
-        this.bot = bot; // Back-reference to BotClient
-        this.queues = new Map();
+    #shoukaku;
+    #queues = new Map();
+    #settingsProvider;
 
-        // Combine the HOST and PORT, falling back to lavalink:2333 if not found
-        const host = process.env.LAVALINK_HOST || 'lavalink';
-        const port = process.env.LAVALINK_PORT || '2333';
+    constructor(botOrShoukaku = null, settingsProvider = null) {
+        this.#settingsProvider = settingsProvider || (botOrShoukaku?.settings ? botOrShoukaku.settings : null);
 
-        const nodes = [
-            {
-                name: 'Docker-Lavalink',
-                url: `${host}:${port}`,
-                auth: process.env.LAVALINK_PASSWORD || 'youshallnotpass', // Also ensure this matches your .env variable name!
-                secure: process.env.LAVALINK_SECURE === 'true'
-            }
-        ];
+        if (botOrShoukaku && botOrShoukaku.shoukaku) {
+            this.#shoukaku = botOrShoukaku.shoukaku;
+        } else if (botOrShoukaku && botOrShoukaku.user) {
+            // DiscordJS Client instance
+            const host = process.env.LAVALINK_HOST || 'lavalink';
+            const port = process.env.LAVALINK_PORT || '2333';
+            const nodes = [
+                {
+                    name: 'Docker-Lavalink',
+                    url: `${host}:${port}`,
+                    auth: process.env.LAVALINK_PASSWORD || 'youshallnotpass',
+                    secure: process.env.LAVALINK_SECURE === 'true'
+                }
+            ];
 
-        this.shoukaku = new Shoukaku(new Connectors.DiscordJS(this.bot), nodes, {
-            moveOnDisconnect: true,
-            reconnectTries: MusicConfig.ReconnectTries,
-            reconnectInterval: MusicConfig.ReconnectIntervalMs
-        });
+            this.#shoukaku = new Shoukaku(new Connectors.DiscordJS(botOrShoukaku), nodes, {
+                moveOnDisconnect: true,
+                reconnectTries: MusicConfig.ReconnectTries,
+                reconnectInterval: MusicConfig.ReconnectIntervalMs
+            });
 
-        this.shoukaku.on('error', (node, err) => console.warn(`[Node Error] ${node}: ${err.message}`));
-        this.shoukaku.on('ready', (node) => console.log(`[Music] Audio Node Synced: ${node}`));
+            this.#shoukaku.on('error', (node, err) => console.warn(`[Node Error] ${node}: ${err.message}`));
+            this.#shoukaku.on('ready', (node) => console.log(`[Music] Audio Node Synced: ${node}`));
+        } else {
+            this.#shoukaku = null;
+        }
+    }
+
+    get shoukaku() {
+        return this.#shoukaku;
+    }
+
+    get queues() {
+        return this.#queues;
     }
 
     async search(query) {
-        const node = this.shoukaku.options.nodeResolver(this.shoukaku.nodes);
+        if (!this.#shoukaku) throw new Error('Music servers are currently offline.');
+        const node = this.#shoukaku.options.nodeResolver(this.#shoukaku.nodes);
         if (!node) throw new Error('Music servers are currently offline.');
 
         const searchUrl = query.startsWith('http') ? query : `ytsearch:${query}`;
@@ -48,15 +71,16 @@ class MusicManager {
     }
 
     async _ensureSession(guild, channelId, textChannel) {
-        if (!this.queues.has(guild.id)) {
-            const player = await this.shoukaku.joinVoiceChannel({
+        if (!this.#queues.has(guild.id)) {
+            if (!this.#shoukaku) throw new Error('Music servers are currently offline.');
+            const player = await this.#shoukaku.joinVoiceChannel({
                 guildId: guild.id,
                 channelId,
                 shardId: guild.shardId || 0
             });
 
             const next = () => {
-                const q = this.queues.get(guild.id);
+                const q = this.#queues.get(guild.id);
                 if (!q) return;
 
                 const finishedSong = q.songs[0];
@@ -66,11 +90,9 @@ class MusicManager {
                     if (q.loop === 'track') {
                         // Keep song at index 0, replay it
                     } else if (q.loop === 'queue' && !finishedSong.isTTS) {
-                        // Move finished song to end of queue for continuous loop
                         q.songs.shift();
                         q.songs.push(finishedSong);
                     } else {
-                        // Default: remove the finished song
                         q.songs.shift();
                     }
                 }
@@ -82,25 +104,23 @@ class MusicManager {
                 console.error('[Play Error]', err);
                 next();
             });
-            player.on('closed', () => this.queues.delete(guild.id));
+            player.on('closed', () => this.#queues.delete(guild.id));
 
-            this.queues.set(guild.id, { player, songs: [], textChannel, voiceChannelId: channelId, loop: 'none' });
+            this.#queues.set(guild.id, { player, songs: [], textChannel, voiceChannelId: channelId, loop: 'none' });
 
-            // Restore saved volume from settings
-            const savedVolume = this.bot.settings?.get(guild.id, 'volume');
+            const savedVolume = this.#settingsProvider?.get(guild.id, 'volume');
             if (savedVolume) player.setGlobalVolume(savedVolume);
         }
-        const q = this.queues.get(guild.id);
+        const q = this.#queues.get(guild.id);
         q.textChannel = textChannel;
         return q;
     }
 
     async processQueue(guildId) {
-        const queue = this.queues.get(guildId);
+        const queue = this.#queues.get(guildId);
         if (!queue) return;
 
         if (!queue.songs.length) {
-            // Queue is empty, just return without sending a redundant message.
             return;
         }
 
@@ -111,36 +131,12 @@ class MusicManager {
                 await queue.player.seekTo(song.resumePosition);
             }
             if (!song.isTTS && !song.resumePosition && queue.loop !== 'track') {
-                const content = `**🎵 歌名**\n${song.title}\n\n**🎤 歌手**\n${song.author}\n\n**⏱️ 時長**\n${this.formatDuration(song.duration)}\n\n**👤 點播者**\n<@${song.requester.id}>\n\n**🔊 語音頻道**\n<#${queue.voiceChannelId}>`;
-                
-                let accentColor = Colors.Music;
-                try {
-                    const colorData = await getAverageColor(song.thumbnail);
-                    if (colorData && colorData.hex) {
-                        accentColor = parseInt(colorData.hex.slice(1), 16);
-                    }
-                } catch (err) {
-                    // Ignore color extraction errors
-                }
-
-                const container = new ContainerBuilder()
-                    .setAccentColor(accentColor)
-                    .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🎶 正在播放`))
-                    .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-                    .addSectionComponents(
-                        new SectionBuilder()
-                            .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
-                            .setThumbnailAccessory(new ThumbnailBuilder().setURL(song.thumbnail))
-                    )
-                    .addActionRowComponents(
-                        new ActionRowBuilder().addComponents(
-                            new ButtonBuilder()
-                                .setLabel('🔗 前往播放來源')
-                                .setStyle(ButtonStyle.Link)
-                                .setURL(song.url)
-                        )
-                    );
-                queue.textChannel?.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
+                const payload = await MusicPresenter.buildNowPlayingMessage(
+                    song,
+                    queue.voiceChannelId,
+                    (ms) => this.formatDuration(ms)
+                );
+                queue.textChannel?.send(payload).catch((e) => console.warn('Ignored error:', e.message));
             }
         } catch (err) {
             console.warn(`[MusicManager] Failed to play track in guild ${guildId}:`, err.message);
@@ -183,39 +179,13 @@ class MusicManager {
 
         if (wasEmpty) await this.processQueue(voiceChannel.guild.id);
         else if (!options.isTTS) {
-            const content = `**🎵 歌名**\n${track.info.title}\n\n**🎤 歌手**\n${track.info.author}\n\n**⏱️ 時長**\n${this.formatDuration(track.info.length)}\n\n**🔢 佇列位置**\n第 ${queue.songs.length} 首\n\n**👤 點播者**\n<@${user.id}>`;
-            const thumbnailURL = track.info.artworkUrl || `https://img.youtube.com/vi/${track.info.identifier}/hqdefault.jpg`;
-            const thumbnail = new ThumbnailBuilder().setURL(thumbnailURL);
-
-            let accentColor = Colors.Music;
-            try {
-                const colorData = await getAverageColor(thumbnailURL);
-                if (colorData && colorData.hex) {
-                    accentColor = parseInt(colorData.hex.slice(1), 16);
-                }
-            } catch (err) {
-                // Ignore color extraction errors
-            }
-
-            const container = new ContainerBuilder()
-                .setAccentColor(accentColor)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已加入播放佇列`))
-                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-                .addSectionComponents(
-                    new SectionBuilder()
-                        .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
-                        .setThumbnailAccessory(thumbnail)
-                )
-                .addActionRowComponents(
-                    new ActionRowBuilder().addComponents(
-                        new ButtonBuilder()
-                            .setLabel('🔗 前往播放來源')
-                            .setStyle(ButtonStyle.Link)
-                            .setURL(track.info.uri)
-                    )
-                );
-
-            textChannel.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
+            const payload = await MusicPresenter.buildAddedToQueueMessage(
+                track.info,
+                queue.songs.length,
+                user,
+                (ms) => this.formatDuration(ms)
+            );
+            textChannel.send(payload).catch((e) => console.warn('Ignored error:', e.message));
         }
     }
 
@@ -235,14 +205,9 @@ class MusicManager {
             })
         );
 
-        const content = `**${playlistName}**\n\n**🎶 歌曲數量**\n${tracks.length} 首\n\n**👤 點播者**\n${user.tag}`;
-        const container = new ContainerBuilder()
-            .setAccentColor(Colors.Music)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已加載整個播放清單`))
-            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
+        const payload = MusicPresenter.buildPlaylistAddedMessage(playlistName, tracks.length, user.tag);
+        textChannel.send(payload).catch((e) => console.warn('Ignored error:', e.message));
 
-        textChannel.send({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch((e) => console.warn('Ignored error:', e.message));
         if (wasEmpty) await this.processQueue(voiceChannel.guild.id);
     }
 
@@ -267,32 +232,36 @@ class MusicManager {
         const progressText = '▇'.repeat(Math.max(0, progress));
         const emptyProgressText = '—'.repeat(Math.max(0, emptyProgress));
 
-        const percentage = Math.round((current / total) * 100);
         return `\`${this.formatDuration(current)}\` [${progressText}🔘${emptyProgressText}] \`${this.formatDuration(total)}\``;
     }
 
     getQueue(guildId) {
-        return this.queues.get(guildId);
+        return this.#queues.get(guildId);
     }
+
     stop(guildId) {
-        const q = this.queues.get(guildId);
+        const q = this.#queues.get(guildId);
         if (q) {
             q.songs = [];
             q.loop = 'none';
             q.player.stopTrack();
         }
     }
+
     skip(guildId) {
-        this.queues.get(guildId)?.player?.stopTrack();
+        this.#queues.get(guildId)?.player?.stopTrack();
     }
+
     pause(guildId) {
-        this.queues.get(guildId)?.player?.setPaused(true);
+        this.#queues.get(guildId)?.player?.setPaused(true);
     }
+
     resume(guildId) {
-        this.queues.get(guildId)?.player?.setPaused(false);
+        this.#queues.get(guildId)?.player?.setPaused(false);
     }
+
     setVolume(guildId, volume) {
-        this.queues.get(guildId)?.player?.setGlobalVolume(volume);
+        this.#queues.get(guildId)?.player?.setGlobalVolume(volume);
     }
 
     async join(voiceChannel, textChannel) {
@@ -300,8 +269,10 @@ class MusicManager {
     }
 
     leave(guildId) {
-        this.shoukaku.leaveVoiceChannel(guildId);
-        this.queues.delete(guildId);
+        if (this.#shoukaku) {
+            this.#shoukaku.leaveVoiceChannel(guildId);
+        }
+        this.#queues.delete(guildId);
     }
 }
 

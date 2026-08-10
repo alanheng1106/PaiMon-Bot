@@ -1,15 +1,29 @@
-const { Client, GatewayIntentBits, Partials, Collection, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } = require('discord.js');
-const fs = require('fs');
+const { Client, GatewayIntentBits, Partials, Collection } = require('discord.js');
 const path = require('path');
 const AIClient = require('./AIClient');
 const ValorantClient = require('./ValorantClient');
 const MusicManager = require('./MusicManager');
 const CooldownManager = require('./CooldownManager');
 const GuildSettings = require('./GuildSettings');
-const { Colors } = require('../config');
+const LinkFixer = require('./LinkFixer');
+const ServiceContainer = require('./ServiceContainer');
+const CommandLoader = require('./bot/CommandLoader');
+const EventLoader = require('./bot/EventLoader');
+const BotResponsePresenter = require('./bot/BotResponsePresenter');
 
+const ComponentRouter = require('./components/ComponentRouter');
+const ValUrlButtonHandler = require('./components/ValUrlButtonHandler');
+const ValUrlModalHandler = require('./components/ValUrlModalHandler');
+
+/**
+ * BotClient — Core Discord Client Orchestrator.
+ * Refactored for clean OOP / SOLID compliance:
+ * - UI response formatting delegated to BotResponsePresenter (SRP)
+ * - Dynamic loading delegated to CommandLoader & EventLoader (SRP)
+ * - Service resolution via ServiceContainer (DIP)
+ */
 class BotClient extends Client {
-    constructor() {
+    constructor(container = null) {
         super({
             intents: [
                 GatewayIntentBits.Guilds,
@@ -21,56 +35,68 @@ class BotClient extends Client {
             partials: [Partials.Channel, Partials.Message]
         });
 
+        this.container = container || this._createDefaultContainer();
         this.commands = new Collection();
-        this.ai = new AIClient();
-        this.music = new MusicManager(this);
-        this.cooldowns = new CooldownManager();
-        this.settings = new GuildSettings();
-        this.valorant = new ValorantClient();
     }
+
+    _createDefaultContainer() {
+        const container = new ServiceContainer();
+        const DomainRegistry = require('./linkfixer/DomainRegistry');
+        const FilePromptProvider = require('./ai/FilePromptProvider');
+        const ToolRegistry = require('./tools/ToolRegistry');
+        const GetCurrentTimeTool = require('./tools/GetCurrentTimeTool');
+        const WebSearchTool = require('./tools/WebSearchTool');
+
+        container.register('domainRegistry', () => new DomainRegistry());
+        container.register('linkFixer', (c) => new LinkFixer(c.get('domainRegistry')));
+        container.register('promptProvider', () => new FilePromptProvider());
+        container.register('toolRegistry', () => {
+            const registry = new ToolRegistry();
+            registry.register(new GetCurrentTimeTool());
+            if (process.env.SERPER_API_KEY) {
+                registry.register(new WebSearchTool());
+            }
+            return registry;
+        });
+        container.register('ai', (c) => new AIClient({
+            toolRegistry: c.get('toolRegistry'),
+            promptProvider: c.get('promptProvider')
+        }));
+        container.register('music', () => new MusicManager(this));
+        container.register('cooldowns', () => new CooldownManager());
+        container.register('settings', () => new GuildSettings());
+        container.register('valorant', () => new ValorantClient());
+        container.register('components', () => {
+            const router = new ComponentRouter();
+            router.register(new ValUrlButtonHandler());
+            router.register(new ValUrlModalHandler());
+            return router;
+        });
+        return container;
+    }
+
+    get ai() { return this.container.get('ai'); }
+    get music() { return this.container.get('music'); }
+    get cooldowns() { return this.container.get('cooldowns'); }
+    get settings() { return this.container.get('settings'); }
+    get valorant() { return this.container.get('valorant'); }
+    get linkFixer() { return this.container.get('linkFixer'); }
+    get components() { return this.container.get('components'); }
 
     /**
      * Dynamically mount all slash commands from the src/commands folder.
      */
-
     _loadCommands() {
         const commandsPath = path.join(__dirname, '..', 'commands');
-        if (!fs.existsSync(commandsPath)) return;
-
-        let loadedCount = 0;
-        const folders = fs.readdirSync(commandsPath);
-        for (const folder of folders) {
-            const folderPath = path.join(commandsPath, folder);
-            if (!fs.statSync(folderPath).isDirectory()) continue;
-
-            const files = fs.readdirSync(folderPath).filter((f) => f.endsWith('.js'));
-            for (const file of files) {
-                const command = require(path.join(folderPath, file));
-                if (command.data && command.execute) {
-                    this.commands.set(command.data.name, command);
-                    loadedCount++;
-                }
-            }
-        }
+        CommandLoader.loadCommands(commandsPath, this.commands);
     }
 
     /**
      * Dynamically mount all event handlers from the src/events folder.
      */
-
     _loadEvents() {
         const eventsPath = path.join(__dirname, '..', 'events');
-        if (!fs.existsSync(eventsPath)) return;
-
-        const files = fs.readdirSync(eventsPath).filter((f) => f.endsWith('.js'));
-        for (const file of files) {
-            const event = require(path.join(eventsPath, file));
-            if (event.once) {
-                this.once(event.name, (...args) => event.execute(...args, this));
-            } else {
-                this.on(event.name, (...args) => event.execute(...args, this));
-            }
-        }
+        EventLoader.loadEvents(eventsPath, this);
     }
 
     /**
@@ -99,44 +125,15 @@ class BotClient extends Client {
     /**
      * Global Error Responder formatting utility
      */
-
     async sendError(interaction, title, description) {
-        const cleanTitle = title.replace(/^\s*(?:<a?:\w+:\d+>|\p{Extended_Pictographic})*\s*/gu, '').trim();
-        const container = new ContainerBuilder()
-            .setAccentColor(Colors.Error)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:cross:1524603300752785550> ${cleanTitle}`))
-            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`${description}`));
-
-        const payload = { components: [container], flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 };
-        try {
-            if (interaction.deferred || interaction.replied) await interaction.followUp(payload);
-            else await interaction.reply(payload);
-        } catch (err) {
-            console.warn('[sendError] Failed to deliver error response:', err.message);
-        }
+        return await BotResponsePresenter.sendError(interaction, title, description);
     }
 
     /**
      * Global Success Responder formatting utility
      */
-
     async sendSuccess(interaction, title, description, ephemeral = false) {
-        const cleanTitle = title.replace(/^\s*(?:<a?:\w+:\d+>|\p{Extended_Pictographic})*\s*/gu, '').trim();
-        const container = new ContainerBuilder()
-            .setAccentColor(Colors.Success)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> ${cleanTitle}`))
-            .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`${description}`));
-
-        const flags = (ephemeral ? MessageFlags.Ephemeral : 0) | MessageFlags.IsComponentsV2;
-        const payload = { components: [container], flags };
-        try {
-            if (interaction.deferred || interaction.replied) await interaction.followUp(payload);
-            else await interaction.reply(payload);
-        } catch (err) {
-            console.warn('[sendSuccess] Failed to deliver success response:', err.message);
-        }
+        return await BotResponsePresenter.sendSuccess(interaction, title, description, ephemeral);
     }
 
     /**
@@ -146,7 +143,6 @@ class BotClient extends Client {
     async shutdown(exitCode = 0) {
         console.log('[Core] Graceful shutdown initiated...');
 
-        // Flush debounced writes so no data is lost
         this.settings.flush();
         this.valorant.flush();
 

@@ -61,6 +61,32 @@ class GuildSettings {
     }
 
     /**
+     * Get link fixer settings for a guild with defaults.
+     * @param {string} guildId
+     */
+    getLinkFixerSettings(guildId) {
+        const defaultSettings = {
+            fixMode: 'webhook', // 'webhook' | 'reply' | 'reply_suppress'
+            deleteMsgEmoji: '❌',
+            rotateFixEmoji: '🔄',
+            disabledDomains: [], // list of domain keys (e.g. 'youtube', 'twitter')
+            domainProviders: {} // domainKey -> providerId
+        };
+        const current = this.get(guildId, 'linkFixer', {});
+        return { ...defaultSettings, ...current };
+    }
+
+    /**
+     * Update link fixer settings for a guild.
+     * @param {string} guildId
+     * @param {Object} settings
+     */
+    setLinkFixerSettings(guildId, settings) {
+        const current = this.getLinkFixerSettings(guildId);
+        this.set(guildId, 'linkFixer', { ...current, ...settings });
+    }
+
+    /**
      * Immediately persist to disk and cancel any pending debounce.
      * Used during graceful shutdown to avoid data loss.
      */
