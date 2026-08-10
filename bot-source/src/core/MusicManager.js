@@ -21,8 +21,14 @@ class MusicManager {
             this.#shoukaku = botOrShoukaku.shoukaku;
         } else if (botOrShoukaku && (botOrShoukaku.user || botOrShoukaku.ws || botOrShoukaku.on)) {
             // DiscordJS Client instance
-            const host = process.env.LAVALINK_HOST || 'lavalink';
+            const fs = require('fs');
+            let host = process.env.LAVALINK_HOST || 'lavalink';
             const port = process.env.LAVALINK_PORT || '2333';
+
+            if (fs.existsSync('/.dockerenv') && (host === 'localhost' || host === '127.0.0.1')) {
+                host = 'lavalink';
+            }
+
             const nodes = [
                 {
                     name: 'Docker-Lavalink',
@@ -38,7 +44,7 @@ class MusicManager {
                 reconnectInterval: MusicConfig.ReconnectIntervalMs
             });
 
-            this.#shoukaku.on('error', (node, err) => console.warn(`[Node Error] ${node}: ${err.message}`));
+            this.#shoukaku.on('error', (node, err) => console.warn(`[Music Node Error] ${node}: ${err?.message || err}`));
             this.#shoukaku.on('ready', (node) => console.log(`[Music] Audio Node Synced: ${node}`));
 
             if (botOrShoukaku.isReady && botOrShoukaku.isReady()) {
