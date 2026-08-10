@@ -105,6 +105,9 @@ class BotClient extends Client {
     async boot() {
         process.on('unhandledRejection', (err) => console.error('[Fatal Catch]', err.stack || err));
 
+        // Eagerly initialize MusicManager so Shoukaku listener attaches before clientReady
+        this.music;
+
         this._loadCommands();
         this._loadEvents();
 

@@ -40,6 +40,15 @@ class MusicManager {
 
             this.#shoukaku.on('error', (node, err) => console.warn(`[Node Error] ${node}: ${err.message}`));
             this.#shoukaku.on('ready', (node) => console.log(`[Music] Audio Node Synced: ${node}`));
+
+            if (botOrShoukaku.isReady && botOrShoukaku.isReady()) {
+                this.#shoukaku.id = botOrShoukaku.user?.id || null;
+                for (const nodeOpt of nodes) {
+                    if (!this.#shoukaku.nodes.has(nodeOpt.name)) {
+                        this.#shoukaku.addNode(nodeOpt);
+                    }
+                }
+            }
         } else {
             this.#shoukaku = null;
         }
