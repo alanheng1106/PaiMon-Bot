@@ -1,68 +1,124 @@
 # PaiMon-Bot
 
-PaiMon-Bot is a Discord bot built with `discord.js` and Lavalink-powered music playback.
+PaiMon-Bot is a Discord bot built with `discord.js` (Components V2), featuring Lavalink music playback, Ollama LLM chat with Tool-calling & Vision, Valorant daily storefront lookup, and link fixing.
 
-## Features
+---
 
-- Discord slash commands for admin tools, general utilities, and music
-- Lavalink music playback with queue, loop, shuffle, pause, resume, skip, stop, volume, and now playing commands
-- Text-to-speech (TTS) powered by Google TTS, with intelligent queue interruption
-- Per-user command cooldown system to prevent spam
-- Guild settings persistence (volume survives restarts)
-- Docker Compose setup for running the bot and Lavalink together
+## 🌟 Features
 
-## Requirements
+- **Discord Slash Commands**: Admin utilities, General commands, Music controls, and Valorant storefront tools.
+- **Lavalink Audio Streaming**: Full music player with queue, loop, shuffle, pause, resume, skip, stop, volume, and Now Playing UI cards.
+- **AI Chat & Vision**: Powered by Ollama streaming responses, Tool-calling strategy (Web Search, Time queries), vision model support, and Hugging Face text-to-image synthesis.
+- **Valorant Store Queries**: Daily storefront inspection, multi-account support, encrypted session storage, and cookie auto-reauthentication.
+- **Embedded Link Fixer**: Automatic social media embed fixer (TikTok, Douyin, Twitter/X, Instagram, Bilibili) using strategy-based metadata scrapers and LRU memory safety.
+- **Clean OOP & SOLID Architecture**: DDD domain separation, Repository Pattern, Strategy Pattern, Command Router, and Dependency Injection Container.
 
-- Node.js 20.x
-- npm
-- Docker and Docker Compose, if running the full container setup
-- A Discord application and bot token
+---
 
-## Setup
+## 🏗️ Architecture & Design Patterns
 
-1. Clone the repository.
+The codebase is engineered adhering strictly to **OOP (Object-Oriented Programming)** and **SOLID Principles**:
+
+| Subsystem / Pattern | Class / Component | Description |
+| :--- | :--- | :--- |
+| **Facade Pattern** | `ValorantClient` | High-level orchestrator providing a clean unified facade for Valorant operations while delegating to specialized services. |
+| **Repository Pattern** | `FileSessionRepository` | Encapsulates disk persistence (`val-sessions.json`), AES-CBC encryption/decryption, and in-memory session state. |
+| **Strategy Pattern** | `RiotAuthenticator` | Encapsulates Riot RSO HTTP authentication endpoints, token URI parsing, and cookie reauthentication. |
+| **Domain Service** | `ValorantStoreService` | Handles storefront API calls, client version resolution, and weapon skin metadata catalog lookup. |
+| **Single Responsibility** | `ImageSynthesisService` | Dedicated service for Hugging Face Text-to-Image synthesis and image URL base64 conversions. |
+| **Presenter Pattern** | `BotResponsePresenter` | Dedicated presentation layer constructing structured Error & Success UI containers for Discord interactions. |
+| **Command / Router** | `ComponentRouter` | Dispatches Discord button and modal UI interactions to specialized component handlers (`ValUrlButtonHandler`, `ValUrlModalHandler`). |
+| **Chain of Responsibility** | `MessagePipeline` | Filters and dispatches incoming messages sequentially through registered handlers (`LinkFixHandler`, `TTSHandler`, `AIStreamHandler`). |
+| **Dependency Injection** | `ServiceContainer` | Central IoC container managing singleton lifecycle resolution for services. |
+
+---
+
+## 📁 Project Structure
+
+```text
+.
+├── bot-source/
+│   ├── index.js
+│   ├── package.json
+│   ├── src/
+│   │   ├── builders/          ← ComponentV2 UI Card Builders
+│   │   ├── commands/          ← Slash command definitions (admin, general, music, valorant)
+│   │   ├── core/
+│   │   │   ├── AIClient.js    ← LLM inference & tool orchestration
+│   │   │   ├── BotClient.js   ← Core Discord Client orchestrator
+│   │   │   ├── ValorantClient.js ← High-level Valorant Facade
+│   │   │   ├── ai/            ← FilePromptProvider, ImageSynthesisService
+│   │   │   ├── bot/           ← CommandLoader, EventLoader, BotResponsePresenter
+│   │   │   ├── components/    ← ComponentRouter, ValUrlButtonHandler, ValUrlModalHandler
+│   │   │   ├── linkfixer/     ← DomainRegistry, default domain configurations
+│   │   │   ├── music/         ← MusicPresenter (Audio UI cards)
+│   │   │   ├── scrapers/      ← BaseMetadataScraper, DouyinMetadataScraper, DefaultOGScraper
+│   │   │   ├── tools/         ← ToolRegistry, BaseTool, GetCurrentTimeTool, WebSearchTool
+│   │   │   └── valorant/      ← FileSessionRepository, RiotAuthenticator, ValorantStoreService
+│   │   ├── events/            ← InteractionCreate, MessageCreate, Ready, MessageReactionAdd
+│   │   ├── handlers/          ← AIStreamHandler, LinkFixHandler, TTSHandler
+│   │   ├── pipeline/          ← BaseMessageHandler, MessagePipeline
+│   │   └── utils/             ← DiscordSanitizer
+│   └── tests/                 ← Node.js native unit test runner suite (50+ unit tests)
+├── docker-compose.yml
+├── .env.example
+└── README.md
+```
+
+---
+
+## 🧪 Running Unit Tests
+
+Unit tests use Node.js native test runner (`node --test`). To run all tests:
+
+```bash
+cd bot-source
+npm test
+```
+
+Test coverage includes:
+- `ServiceContainer` DI resolution
+- `ToolRegistry` & `ComponentRouter` strategy dispatching
+- `FileSessionRepository` AES encryption & persistence
+- `RiotAuthenticator` token URI parsing
+- `ValorantClient` facade integration
+- `LinkFixer` LRU Cache memory safety
+- `MessagePipeline` chain execution
+- `MusicPresenter` & `StoreCanvas` RGB color math
+
+---
+
+## 🚀 Setup & Execution
+
+### 1. Requirements
+
+- Node.js 20.x or higher
+- Docker & Docker Compose (optional for Lavalink container setup)
+- Discord Bot Token & Application ID
+
+### 2. Configuration
+
+Clone the repository and copy `.env.example`:
 
 ```bash
 git clone git@github.com:alanheng1106/PaiMon-Bot.git
 cd PaiMon-Bot
+cp bot-source/.env.example .env
 ```
 
-2. Create your environment file.
-
-```bash
-cp .env.example .env
-```
-
-3. Fill in `.env` with your Discord token, application IDs, and optional keys.
+Configure `.env`:
 
 ```env
-DISCORD_TOKEN=
-CLIENT_ID=
-GUILD_ID=
-OWNER_ID=
+DISCORD_TOKEN=your_bot_token
+CLIENT_ID=your_client_id
+OWNER_ID=your_discord_user_id
 
 LAVALINK_HOST=lavalink
 LAVALINK_PORT=2333
 LAVALINK_PASSWORD=youshallnotpass
-LAVALINK_SECURE=false
 ```
 
-## Run With Docker Compose
-
-From the repository root:
-
-```bash
-docker compose up --build
-```
-
-This starts:
-
-- `discord-bot`, built from `bot-source/`
-- `lavalink`, using the Lavalink v4 image and `lavalink/application.yml`
-
-## Run Locally
-
-If Lavalink is already running separately:
+### 3. Run Locally
 
 ```bash
 cd bot-source
@@ -70,87 +126,8 @@ npm install
 npm start
 ```
 
-For local bot execution, set `LAVALINK_HOST`, `LAVALINK_PORT`, and `LAVALINK_PASSWORD` in `.env` to match your Lavalink server.
+### 4. Run With Docker Compose
 
-## Commands
-
-Admin:
-
-- `/ban`
-- `/kick`
-- `/rename`
-
-Owner:
-
-- `/setgame`
-- `/setstatus`
-- `/shutdown`
-- `/restart`
-
-General:
-
-- `/about`
-- `/help`
-- `/ping`
-- `/tts`
-
-Music:
-
-- `/join`
-- `/play`
-- `/pause`
-- `/resume`
-- `/skip`
-- `/stop`
-- `/loop`
-- `/shuffle`
-- `/queue`
-- `/nowplaying`
-- `/volume`
-- `/disconnect`
-
-Valorant:
-
-- `/vallogin` — 登入 Riot 帳號（支援多帳號 & 2FA）
-- `/valstore` — 查看 Valorant 每日商店
-- `/vallogout` — 登出 Riot 帳號
-
-AI Chat:
-
-- **@mention the bot** in any channel, or **send a DM** to start a conversation.
-- The bot uses Ollama for text generation with streaming responses and supports tool-calling (web search, time queries).
-- Image understanding is supported — attach an image to your message and the bot will use a vision model to analyze it.
-- The bot passively reads channel messages to build context, so it can follow ongoing conversations when mentioned.
-
-## Project Structure
-
-```text
-.
-├── bot-source/
-│   ├── index.js
-│   ├── package.json
-│   └── src/
-│       ├── commands/
-│       │   ├── valorant/  ← vallogin, valstore, vallogout
-│       │   └── ...
-│       ├── core/
-│       │   ├── ValorantClient.js
-│       │   └── ...
-│       ├── data/          ← guild-settings.json, val-sessions.json (auto-created)
-│       └── events/
-├── lavalink/
-│   └── application.yml
-├── docker-compose.yml
-├── .env.example
-└── README.md
+```bash
+docker compose up --build
 ```
-
-## Notes
-
-- Keep `.env` private. It is ignored by Git.
-- `node_modules/`, Lavalink logs, and downloaded jar files are ignored by Git.
-- Set `OWNER_ID` in `.env` to your Discord user ID. Owner commands (`/setgame`, `/setstatus`, `/shutdown`, `/restart`) are restricted to this user regardless of server permissions.
-- Lavalink uses `youshallnotpass` as the default password in this setup. **Change it** in both `.env` and `lavalink/application.yml` before deploying.
-- Lavalink is not exposed on the host network by default; it communicates with the bot through the internal Docker network only.
-- Guild settings (e.g. volume) are persisted in `bot-source/data/guild-settings.json` and survive bot restarts.
-- Valorant sessions (auth tokens) are persisted in `bot-source/data/val-sessions.json`. This file is gitignored. Tokens auto-refresh via cookie reauth; users only need to re-login when cookies expire (typically weeks).
