@@ -19,7 +19,7 @@ class MusicManager {
 
         if (botOrShoukaku && botOrShoukaku.shoukaku) {
             this.#shoukaku = botOrShoukaku.shoukaku;
-        } else if (botOrShoukaku && botOrShoukaku.user) {
+        } else if (botOrShoukaku && (botOrShoukaku.user || botOrShoukaku.ws || botOrShoukaku.on)) {
             // DiscordJS Client instance
             const host = process.env.LAVALINK_HOST || 'lavalink';
             const port = process.env.LAVALINK_PORT || '2333';
