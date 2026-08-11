@@ -35,6 +35,7 @@ class DefaultOGMetadataScraper extends BaseMetadataScraper {
 
             return { title, description, image, video, siteName, color };
         } catch (e) {
+            console.warn('[DefaultOGMetadataScraper] Scrape error:', e.message);
             return null;
         }
     }

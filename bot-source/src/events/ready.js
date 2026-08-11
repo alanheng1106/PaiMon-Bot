@@ -3,7 +3,7 @@ const { Events, ActivityType } = require('discord.js');
 module.exports = {
     name: Events.ClientReady,
     once: true,
-    async execute(client, bot) {
+    async execute(bot) {
         console.log(`[Process] Identity Verified: ${bot.user.username}`);
 
         try {

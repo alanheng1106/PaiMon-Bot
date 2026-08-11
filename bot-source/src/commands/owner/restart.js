@@ -15,5 +15,6 @@ module.exports = {
 
         // Exit code 1 triggers Docker's "restart: unless-stopped" policy
         await bot.shutdown(1);
+        process.exit(1);
     }
 };

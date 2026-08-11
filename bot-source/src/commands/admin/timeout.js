@@ -1,5 +1,7 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SectionBuilder, ThumbnailBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const ModerationHelper = require('../../utils/ModerationHelper');
 const { Colors } = require('../../config');
+
 // Map choice values (seconds) to display labels
 const DURATION_MAP = {
     60: '1 分鐘',
@@ -49,51 +51,33 @@ module.exports = {
         const member = await interaction.guild.members.fetch(user.id).catch(() => null);
 
         if (!member) return bot.sendError(interaction, '查無成員', '在伺服器中找不到該使用者');
-        if (user.id === interaction.user.id) return bot.sendError(interaction, '操作無效', '你不能禁言你自己!');
-        if (user.id === bot.user.id) return bot.sendError(interaction, '操作無效', '我沒辦法禁言我自己!');
-        if (user.id === interaction.guild.ownerId)
-            return bot.sendError(interaction, '權限受限', '你不能禁言伺服器擁有者!');
 
-        if (
-            interaction.member.roles.highest.position <= member.roles.highest.position &&
-            interaction.guild.ownerId !== interaction.user.id
-        ) {
-            return bot.sendError(interaction, '權限等級不足', `你的最高身分組不高於 **${user.tag}**, 無法執行`);
+        const targetErr = ModerationHelper.validateTarget(interaction, bot, user, member, { actionName: '執行禁言' });
+        if (targetErr) {
+            return bot.sendError(interaction, '權限受限', targetErr);
         }
+
         if (!member.moderatable) {
             return bot.sendError(interaction, '權限溢位', `我禁言不了這位成員, 請確認我的身分組有高於 **${user.tag}**`);
         }
 
         const durationLabel = DURATION_MAP[durationSeconds] ?? `${durationSeconds} 秒`;
 
-        // DM target before timeout (best effort)
-        await user
-            .send(`⏳ 你已在 **${interaction.guild.name}** 被禁言 **${durationLabel}**.\n📋 原因: \`${reason}\``)
-            .catch((e) => console.warn('Ignored error:', e.message));
+        await ModerationHelper.notifyTarget(user, `⏳ 你已在 **${interaction.guild.name}** 被禁言 **${durationLabel}**.`, reason);
 
         try {
             await member.timeout(durationSeconds * 1000, `By ${interaction.user.tag}: ${reason}`);
             
-            const timestamp = Math.floor(Date.now() / 1000);
-            const content = `> **👤 被執行者**　${user.tag} (\`${user.id}\`)
-> **👮 執行者**　${interaction.user.tag} (\`${interaction.user.id}\`)
-> **🕒 執行時間**　<t:${timestamp}:f>
-> **⏱️ 禁言時長**　${durationLabel}
+            const payload = ModerationHelper.buildPunishmentCard({
+                title: '禁言成功',
+                color: Colors.Punish,
+                user,
+                executor: interaction.user,
+                reason,
+                extraFields: [`> **⏱️ 禁言時長**　${durationLabel}`]
+            });
 
-**📋 執行原因**
-${reason}`;
-            
-            const container = new ContainerBuilder()
-                .setAccentColor(Colors.Punish)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 禁言成功`))
-                .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-                .addSectionComponents(
-                    new SectionBuilder()
-                        .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
-                        .setThumbnailAccessory(new ThumbnailBuilder().setURL(user.displayAvatarURL({ extension: 'png', size: 1024 })))
-                );
-
-            await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
+            await interaction.reply(payload);
         } catch (err) {
             console.error('[Timeout CMD]', err);
             bot.sendError(interaction, '執行失敗', '禁言時出了點問題, 請稍後再試.');

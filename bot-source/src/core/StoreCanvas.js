@@ -1,6 +1,10 @@
 const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
+const { LRUCache } = require('lru-cache');
 const fs = require('fs');
 const path = require('path');
+
+const { StoreCanvas: StoreConfig } = require('../config');
+const ColorUtils = require('../utils/ColorUtils');
 
 try {
     const fontPath = path.join(__dirname, '..', '..', 'fonts', 'NotoSansTC-Bold.otf');
@@ -10,7 +14,50 @@ try {
 } catch (e) {
     console.error('Error loading font:', e);
 }
+
 class StoreCanvas {
+    static #imageCache = new LRUCache({
+        max: 100,
+        ttl: 1000 * 60 * 60 * 6 // 6 hours TTL
+    });
+
+    static LAYOUT = {
+        WIDTH: StoreConfig?.Width || 1600,
+        HEIGHT: StoreConfig?.Height || 800,
+        CARD_WIDTH: StoreConfig?.CardWidth || 330,
+        CARD_HEIGHT: StoreConfig?.CardHeight || 450,
+        GAP: StoreConfig?.Gap || 30,
+        START_Y: StoreConfig?.StartY || 160,
+        CORNER_RADIUS: StoreConfig?.CornerRadius || 16,
+        BG_COLOR: StoreConfig?.BgColor || '#101115',
+        CARD_BG_COLOR: StoreConfig?.CardBgColor || '#1c1c24',
+        HEADER_FONT: 'bold 48px "Noto Sans TC", sans-serif',
+        TIMER_FONT: 'bold 36px "Noto Sans TC", sans-serif',
+        RARITY_FONT: 'bold 18px "Noto Sans TC", sans-serif',
+        NAME_FONT: 'bold 24px "Noto Sans TC", sans-serif',
+        PRICE_FONT: 'bold 24px "Noto Sans TC", sans-serif'
+    };
+
+    /**
+     * Load image with in-memory caching to optimize HTTP requests.
+     * @param {string} url 
+     * @returns {Promise<Image|null>}
+     */
+    static async #loadImageCached(url) {
+        if (!url) return null;
+        if (this.#imageCache.has(url)) {
+            return this.#imageCache.get(url);
+        }
+        try {
+            const img = await loadImage(url);
+            this.#imageCache.set(url, img);
+            return img;
+        } catch (e) {
+            console.error(`[StoreCanvas] Failed to load image from ${url}:`, e.message);
+            return null;
+        }
+    }
+
     /**
      * Build the store canvas image.
      * @param {Array} skins - Array of { uuid, displayName, displayIcon, tierName, tierColor, price }
@@ -18,136 +65,129 @@ class StoreCanvas {
      * @returns {Promise<Buffer>} - PNG buffer
      */
     static async generateStoreImage(skins, remainingSeconds) {
-        const width = 1600;
-        const height = 800;
+        const layout = StoreCanvas.LAYOUT;
+        const width = layout.WIDTH;
+        const height = layout.HEIGHT;
         const canvas = createCanvas(width, height);
         const ctx = canvas.getContext('2d');
 
         // Background
-        ctx.fillStyle = '#101115'; // Very dark Valorant-like background
+        ctx.fillStyle = layout.BG_COLOR;
         ctx.fillRect(0, 0, width, height);
 
-        // Header Title
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 48px "Noto Sans TC", sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText('每日優惠', 80, 100);
+        // Header Title & Countdown Timer
+        this.#drawHeader(ctx, layout, width, remainingSeconds);
 
-        // Header Timer
+        // Grid parameters
+        const cardWidth = layout.CARD_WIDTH;
+        const cardHeight = layout.CARD_HEIGHT;
+        const gap = layout.GAP;
+        const startX = (width - (4 * cardWidth + 3 * gap)) / 2; // Center cards horizontally
+        const startY = layout.START_Y;
+
+        // Load VP Icon with caching
+        const vpIconUrl = StoreConfig?.VpIconUrl || 'https://media.valorant-api.com/currencies/85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741/displayicon.png';
+        const vpIcon = await this.#loadImageCached(vpIconUrl);
+
+        // Draw Store Cards
+        for (let i = 0; i < skins.length; i++) {
+            const cx = startX + i * (cardWidth + gap);
+            const cy = startY;
+            await this.#drawCard(ctx, layout, skins[i], cx, cy, cardWidth, cardHeight, vpIcon);
+        }
+
+        return await canvas.encode('png');
+    }
+
+    static #drawHeader(ctx, layout, width, remainingSeconds) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = layout.HEADER_FONT;
+        ctx.textAlign = 'left';
+        ctx.fillText(StoreConfig?.HeaderTitle || '每日優惠', 80, 100);
+
         const hours = Math.floor(remainingSeconds / 3600);
         const minutes = Math.floor((remainingSeconds % 3600) / 60);
         const seconds = remainingSeconds % 60;
         const timerText = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         ctx.fillStyle = '#8b8e96';
-        ctx.font = 'bold 36px "Noto Sans TC", sans-serif';
+        ctx.font = layout.TIMER_FONT;
         ctx.textAlign = 'right';
         ctx.fillText(timerText, width - 80, 100);
+    }
 
-        // Grid parameters
-        const cardWidth = 330;
-        const cardHeight = 450;
-        const gap = 30;
-        const startX = (width - (4 * cardWidth + 3 * gap)) / 2; // Center the 4 cards
-        const startY = 160;
+    static async #drawCard(ctx, layout, skin, cx, cy, cardWidth, cardHeight, vpIcon) {
+        // Card Background
+        ctx.fillStyle = layout.CARD_BG_COLOR;
+        this.roundRect(ctx, cx, cy, cardWidth, cardHeight, layout.CORNER_RADIUS);
+        ctx.fill();
 
-        // Load VP Icon
-        let vpIcon = null;
-        try {
-            vpIcon = await loadImage(
-                'https://media.valorant-api.com/currencies/85ad13f7-3d1b-5128-9eb2-7cd8ee0b5741/displayicon.png'
-            );
-        } catch (e) {
-            console.error('Failed to load VP icon:', e);
+        // Colored Top Border (Rarity)
+        const gradient = ctx.createLinearGradient(cx, cy, cx + cardWidth, cy);
+        const baseColor = skin.tierColor || '#888888';
+        gradient.addColorStop(0, this.adjustColor(baseColor, -40));
+        gradient.addColorStop(0.5, baseColor);
+        gradient.addColorStop(1, this.adjustColor(baseColor, -40));
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.roundRect(cx, cy, cardWidth, 8, [layout.CORNER_RADIUS, layout.CORNER_RADIUS, 0, 0]);
+        ctx.fill();
+
+        // Rarity Glow effect behind weapon
+        ctx.save();
+        ctx.globalAlpha = 0.15;
+        ctx.fillStyle = baseColor;
+        ctx.beginPath();
+        ctx.arc(cx + cardWidth / 2, cy + cardHeight / 2 - 30, 120, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.restore();
+
+        // Load and draw Weapon Image (Cached)
+        if (skin.displayIcon) {
+            const wImg = await this.#loadImageCached(skin.displayIcon);
+            if (wImg) {
+                const boxW = 280;
+                const boxH = 150;
+                let drawW = wImg.width;
+                let drawH = wImg.height;
+
+                const scale = Math.min(boxW / drawW, boxH / drawH);
+                drawW *= scale;
+                drawH *= scale;
+
+                const drawX = cx + (cardWidth - drawW) / 2;
+                const drawY = cy + 195 - drawH / 2;
+
+                ctx.drawImage(wImg, drawX, drawY, drawW, drawH);
+            }
         }
 
-        // Draw Cards
-        for (let i = 0; i < skins.length; i++) {
-            const skin = skins[i];
-            const cx = startX + i * (cardWidth + gap);
-            const cy = startY;
+        // Bottom Text Area
+        const textYOffset = cy + cardHeight - 120;
 
-            // Card Background
-            ctx.fillStyle = '#1c1c24';
-            this.roundRect(ctx, cx, cy, cardWidth, cardHeight, 16);
-            ctx.fill();
+        // Rarity Text
+        ctx.fillStyle = baseColor;
+        ctx.font = layout.RARITY_FONT;
+        ctx.textAlign = 'left';
+        ctx.fillText((skin.tierName || 'UNKNOWN').toUpperCase(), cx + 25, textYOffset);
 
-            // Colored Top Border (Rarity)
-            const gradient = ctx.createLinearGradient(cx, cy, cx + cardWidth, cy);
-            const baseColor = skin.tierColor || '#888888';
-            gradient.addColorStop(0, this.adjustColor(baseColor, -40));
-            gradient.addColorStop(0.5, baseColor);
-            gradient.addColorStop(1, this.adjustColor(baseColor, -40));
+        // Skin Name
+        ctx.fillStyle = '#ffffff';
+        ctx.font = layout.NAME_FONT;
+        let name = skin.displayName || (StoreConfig?.DefaultSkinName || '未知造型');
+        if (name.length > 20) name = name.substring(0, 18) + '...';
+        ctx.fillText(name, cx + 25, textYOffset + 35);
 
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.roundRect(cx, cy, cardWidth, 8, [16, 16, 0, 0]);
-            ctx.fill();
-
-            // Rarity Glow effect behind weapon (subtle)
-            ctx.save();
-            ctx.globalAlpha = 0.15;
-            ctx.fillStyle = baseColor;
-            ctx.beginPath();
-            ctx.arc(cx + cardWidth / 2, cy + cardHeight / 2 - 30, 120, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.restore();
-
-            // Load and draw Weapon Image
-            if (skin.displayIcon) {
-                try {
-                    const wImg = await loadImage(skin.displayIcon);
-                    // Fit image into bounding box 280x200
-                    const boxW = 280;
-                    const boxH = 150;
-                    let drawW = wImg.width;
-                    let drawH = wImg.height;
-
-                    const scale = Math.min(boxW / drawW, boxH / drawH);
-                    drawW *= scale;
-                    drawH *= scale;
-
-                    const drawX = cx + (cardWidth - drawW) / 2;
-                    // The background circle center is at cy + cardHeight / 2 - 30 = cy + 195.
-                    // We want the image center (drawY + drawH / 2) to equal cy + 195.
-                    const drawY = cy + 195 - drawH / 2;
-
-                    ctx.drawImage(wImg, drawX, drawY, drawW, drawH);
-                } catch (e) {
-                    console.error('Failed to load skin image:', e);
-                }
-            }
-
-            // Bottom Text Area
-            const textYOffset = cy + cardHeight - 120;
-
-            // Rarity Text
-            ctx.fillStyle = baseColor;
-            ctx.font = 'bold 18px "Noto Sans TC", sans-serif';
-            ctx.textAlign = 'left';
-            ctx.fillText((skin.tierName || 'UNKNOWN').toUpperCase(), cx + 25, textYOffset);
-
-            // Skin Name
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 24px "Noto Sans TC", sans-serif';
-            let name = skin.displayName || '未知造型';
-            // Truncate if too long
-            if (name.length > 20) name = name.substring(0, 18) + '...';
-            ctx.fillText(name, cx + 25, textYOffset + 35);
-
-            // Price and VP icon
-            const priceY = textYOffset + 75;
-            if (vpIcon) {
-                ctx.drawImage(vpIcon, cx + 25, priceY - 22, 28, 28);
-            }
-            ctx.fillStyle = '#e5e5e5';
-            ctx.font = 'bold 24px "Noto Sans TC", sans-serif';
-            const priceStr = skin.price ? skin.price.toLocaleString() : '未知';
-            ctx.fillText(priceStr, cx + 60, priceY);
+        // Price and VP icon
+        const priceY = textYOffset + 75;
+        if (vpIcon) {
+            ctx.drawImage(vpIcon, cx + 25, priceY - 22, 28, 28);
         }
-
-        // Footer removed as requested
-
-        return await canvas.encode('png');
+        ctx.fillStyle = '#e5e5e5';
+        ctx.font = layout.PRICE_FONT;
+        const priceStr = skin.price ? skin.price.toLocaleString() : '未知';
+        ctx.textAlign = 'left';
+        ctx.fillText(priceStr, vpIcon ? cx + 60 : cx + 25, priceY);
     }
 
     /**
@@ -168,26 +208,10 @@ class StoreCanvas {
     }
 
     /**
-     * Helper to darken/lighten a hex color
+     * Helper to darken/lighten a hex color (delegated to ColorUtils).
      */
     static adjustColor(color, amount) {
-        let usePound = false;
-        if (color[0] == '#') {
-            color = color.slice(1);
-            usePound = true;
-        }
-        let num = parseInt(color, 16);
-        if (isNaN(num)) return usePound ? '#888888' : '888888';
-        let r = (num >> 16) + amount;
-        if (r > 255) r = 255;
-        else if (r < 0) r = 0;
-        let g = ((num >> 8) & 0x00ff) + amount;
-        if (g > 255) g = 255;
-        else if (g < 0) g = 0;
-        let b = (num & 0x0000ff) + amount;
-        if (b > 255) b = 255;
-        else if (b < 0) b = 0;
-        return (usePound ? '#' : '') + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+        return ColorUtils.adjustColor(color, amount);
     }
 }
 

@@ -1,12 +1,14 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const ServiceContainer = require('../src/core/ServiceContainer');
+const AppContainerBuilder = require('../src/core/bot/AppContainerBuilder');
+const MusicManager = require('../src/core/MusicManager');
 const ToolRegistry = require('../src/core/tools/ToolRegistry');
 const BaseTool = require('../src/core/tools/BaseTool');
 const ComponentRouter = require('../src/core/components/ComponentRouter');
 const BaseComponentHandler = require('../src/core/components/BaseComponentHandler');
 
-describe('ServiceContainer (Dependency Injection)', () => {
+describe('ServiceContainer & AppContainerBuilder (Dependency Injection)', () => {
     it('registers and retrieves a direct instance', () => {
         const container = new ServiceContainer();
         const dummyService = { name: 'test-service' };
@@ -35,6 +37,27 @@ describe('ServiceContainer (Dependency Injection)', () => {
     it('throws when getting an unregistered service', () => {
         const container = new ServiceContainer();
         assert.throws(() => container.get('nonexistent'), /is not registered/);
+    });
+
+    it('builds default container via AppContainerBuilder Composition Root', () => {
+        const container = AppContainerBuilder.buildDefaultContainer();
+        assert.ok(container.has('music'));
+        assert.ok(container.has('ai'));
+        assert.ok(container.has('lavalinkService'));
+        assert.ok(container.has('settings'));
+        assert.ok(container.has('cooldowns'));
+        assert.ok(container.has('valorant'));
+        assert.ok(container.has('linkFixer'));
+        assert.ok(container.has('components'));
+        assert.ok(container.has('reactionRouter'));
+    });
+
+    it('enforces strict constructor parameter contract on MusicManager', () => {
+        assert.throws(() => new MusicManager(null), /LavalinkService instance is required/);
+
+        const mockLavalink = { shoukaku: {} };
+        const manager = new MusicManager(mockLavalink);
+        assert.equal(manager.shoukaku, mockLavalink.shoukaku);
     });
 });
 

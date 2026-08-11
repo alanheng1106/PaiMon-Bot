@@ -9,8 +9,9 @@ const {
     ButtonStyle,
     MessageFlags
 } = require('discord.js');
-const { Colors } = require('../../config');
+const { Colors, Emojis } = require('../../config');
 const { getAverageColor } = require('fast-average-color-node');
+const ColorUtils = require('../../utils/ColorUtils');
 
 /**
  * MusicPresenter — Encapsulates Discord UI card rendering for music events.
@@ -27,7 +28,7 @@ class MusicPresenter {
         try {
             const colorData = await getAverageColor(thumbnailUrl);
             if (colorData && colorData.hex) {
-                return parseInt(colorData.hex.slice(1), 16);
+                return ColorUtils.hexToInt(colorData.hex, Colors.Music);
             }
         } catch (err) {
             // Ignore color extraction errors
@@ -78,7 +79,7 @@ class MusicPresenter {
 
         const container = new ContainerBuilder()
             .setAccentColor(accentColor)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已加入播放佇列`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${Emojis.Success} 已加入播放佇列`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addSectionComponents(
                 new SectionBuilder()
@@ -104,11 +105,47 @@ class MusicPresenter {
         const content = `**${playlistName}**\n\n**🎶 歌曲數量**\n${trackCount} 首\n\n**👤 點播者**\n${userTag}`;
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Music)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已加載整個播放清單`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${Emojis.Success} 已加載整個播放清單`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
 
         return { components: [container], flags: MessageFlags.IsComponentsV2 };
+    }
+
+    /**
+     * Format milliseconds into standard time string (H:MM:SS or M:SS).
+     * @param {number} ms 
+     * @returns {string}
+     */
+    static formatDuration(ms) {
+        if (ms === 0) return '直播流';
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        const hours = Math.floor(minutes / 60);
+
+        const m = minutes % 60;
+        const s = seconds < 10 ? `0${seconds}` : seconds;
+
+        if (hours > 0) return `${hours}:${m < 10 ? `0${m}` : m}:${s}`;
+        return `${m}:${s}`;
+    }
+
+    /**
+     * Build text progress bar for audio playback.
+     * @param {number} current 
+     * @param {number} total 
+     * @param {number} [size=15] 
+     * @returns {string}
+     */
+    static createProgressBar(current, total, size = 15) {
+        const progress = Math.round((size * current) / total);
+        const emptyProgress = size - progress;
+
+        const progressText = '▇'.repeat(Math.max(0, progress));
+        const emptyProgressText = '—'.repeat(Math.max(0, emptyProgress));
+
+        return `\`${this.formatDuration(current)}\` [${progressText}🔘${emptyProgressText}] \`${this.formatDuration(total)}\``;
     }
 }
 

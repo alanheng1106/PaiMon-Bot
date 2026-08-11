@@ -96,7 +96,7 @@ class ValorantClient {
                 return { error: '網址無效或缺少授權 Token, 請確認是否複製完整.' };
             }
 
-            return await this._completeLogin(discordUserId, {
+            return await this.#completeLogin(discordUserId, {
                 accessToken: tokens.accessToken,
                 idToken: tokens.idToken,
                 cookies: ''
@@ -107,7 +107,7 @@ class ValorantClient {
         }
     }
 
-    async _completeLogin(discordUserId, authResult) {
+    async #completeLogin(discordUserId, authResult) {
         try {
             const { accessToken, idToken, cookies } = authResult;
 
@@ -130,7 +130,7 @@ class ValorantClient {
 
             return { success: true, riotId, shard: geo.shard, region: geo.region };
         } catch (err) {
-            console.error('[ValorantClient] _completeLogin error:', err);
+            console.error('[ValorantClient] #completeLogin error:', err);
             return { error: `登入完成階段失敗: ${err.message}` };
         }
     }

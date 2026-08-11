@@ -9,7 +9,7 @@ const {
     SeparatorBuilder,
     MessageFlags
 } = require('discord.js');
-const { Colors } = require('../../config');
+const { Colors, Music: MusicConfig } = require('../../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -20,19 +20,30 @@ module.exports = {
     category: 'music',
     cooldown: 3,
     helpText: '🔹 `/play [曲名或 URL]` - 搜尋並播放歌曲, 支援 YouTube 關鍵字或直接貼上連結 (包含播放清單)',
+    
+    /** @type {import('../../core/MusicManager')} */
+    musicManager: null,
+
+    configure(container) {
+        if (container && container.has('music')) {
+            this.musicManager = container.get('music');
+        }
+    },
+
     async execute(interaction, bot) {
+        const musicService = this.musicManager || bot?.music;
         await interaction.deferReply();
         const voiceChannel = interaction.member?.voice?.channel;
         if (!voiceChannel) return bot.sendError(interaction, '語音連線遭拒', '你要先加入語音頻道!');
 
         const permissions = voiceChannel.permissionsFor(interaction.guild.members.me);
         if (!permissions.has(['Connect', 'Speak'])) {
-                '我在這個頻道缺少 `連線 (Connect)` 或 `說話 (Speak)` 的權限, 進不去!'
+            return bot.sendError(interaction, '權限不足', '我在這個頻道缺少 `連線 (Connect)` 或 `說話 (Speak)` 的權限, 進不去!');
         }
 
         const botVoiceChannel = interaction.guild.members.me.voice.channel;
         if (botVoiceChannel && botVoiceChannel.id !== voiceChannel.id) {
-                `我已經在 <#${botVoiceChannel.id}> 裡了, 請到同一個頻道!`
+            return bot.sendError(interaction, '頻道衝突', `我已經在 <#${botVoiceChannel.id}> 裡了, 請到同一個頻道!`);
         }
 
         const query = interaction.options.getString('query', true).trim();
@@ -46,16 +57,16 @@ module.exports = {
         }
 
         try {
-            const { isPlaylist, name, tracks } = await bot.music.search(query);
+            const { isPlaylist, name, tracks } = await musicService.search(query);
             if (!tracks?.length) return bot.sendError(interaction, '查無結果', `找不到任何與 \`${query}\` 相符的結果`);
 
             if (isPlaylist) {
-                await bot.music.playPlaylist(voiceChannel, interaction.channel, name, tracks, interaction.user);
+                await musicService.playPlaylist(voiceChannel, interaction.channel, name, tracks, interaction.user);
                 return;
             }
 
             if (query.startsWith('http')) {
-                await bot.music.play(voiceChannel, interaction.channel, tracks[0], interaction.user);
+                await musicService.play(voiceChannel, interaction.channel, tracks[0], interaction.user);
                 return;
             }
 
@@ -74,11 +85,12 @@ module.exports = {
                     )
                 );
 
+            const selectTimeoutSec = Math.round((MusicConfig.SearchSelectTimeoutMs || 25000) / 1000);
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Music)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### 🎶 搜尋結果`))
                 .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`以下是 \`${query}\` 的搜尋結果, 請從下方選單選擇:\n\n選單將在 25 秒後失效`));
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`以下是 \`${query}\` 的搜尋結果, 請從下方選單選擇:\n\n選單將在 ${selectTimeoutSec} 秒後失效`));
 
             const response = await interaction.followUp({
                 components: [container, new ActionRowBuilder().addComponents(selectMenu)],
@@ -88,7 +100,7 @@ module.exports = {
             response
                 .awaitMessageComponent({
                     componentType: ComponentType.StringSelect,
-                    time: 25_000,
+                    time: MusicConfig.SearchSelectTimeoutMs || 25000,
                     filter: (i) => i.user.id === interaction.user.id
                 })
                 .then(async (i) => {
@@ -98,7 +110,7 @@ module.exports = {
                     const container = new ContainerBuilder().setAccentColor(Colors.Music).addTextDisplayComponents(text);
 
                     await i.update({ components: [container], flags: MessageFlags.IsComponentsV2 });
-                    await bot.music.play(voiceChannel, interaction.channel, selectedTrack, interaction.user);
+                    await musicService.play(voiceChannel, interaction.channel, selectedTrack, interaction.user);
                 })
                 .catch(() => {
                     const text = new TextDisplayBuilder().setContent('### ⏰ 選擇已超時或取消');

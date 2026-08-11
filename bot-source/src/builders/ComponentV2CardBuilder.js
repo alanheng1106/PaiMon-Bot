@@ -23,6 +23,7 @@ const {
     ButtonBuilder,
     ButtonStyle
 } = require('discord.js');
+const { LinkFixer: LinkFixConfig } = require('../config');
 
 class ComponentV2CardBuilder {
     /**
@@ -33,7 +34,8 @@ class ComponentV2CardBuilder {
      * @returns {ContainerBuilder} The constructed V2 container component
      */
     static buildCard(item, ogMetadata = {}) {
-        const colorHex = ogMetadata.color || item.color || '#00AEEC';
+        const defaultColorHex = LinkFixConfig?.DefaultCardColor ? `#${LinkFixConfig.DefaultCardColor.toString(16).padStart(6, '0')}` : '#00AEEC';
+        const colorHex = ogMetadata.color || item.color || defaultColorHex;
         const colorInt = this.resolveColorInt(colorHex);
 
         const urlMatch = item.originalUrl.match(/\/(?:post|status|video|p|reels?|reel)\/([\w-]+)/i) || item.originalUrl.match(/\/([\w-]{4,})\/?$/i);
@@ -52,8 +54,9 @@ class ComponentV2CardBuilder {
         );
 
         // 2. Post Content / Stats Description
+        const maxLength = LinkFixConfig?.MaxDescriptionLength || 2000;
         container.addTextDisplayComponents(
-            new TextDisplayBuilder().setContent(descText.slice(0, 2000))
+            new TextDisplayBuilder().setContent(descText.slice(0, maxLength))
         );
 
         // 3. Separator 1
@@ -104,10 +107,11 @@ class ComponentV2CardBuilder {
      * @returns {number} Integer color value
      */
     static resolveColorInt(hexStr) {
-        if (!hexStr) return 0x00AEEC;
+        const defaultColor = LinkFixConfig?.DefaultCardColor || 0x00AEEC;
+        if (!hexStr) return defaultColor;
         const cleanHex = hexStr.replace('#', '');
         const num = parseInt(cleanHex, 16);
-        return isNaN(num) ? 0x00AEEC : num;
+        return isNaN(num) ? defaultColor : num;
     }
 }
 

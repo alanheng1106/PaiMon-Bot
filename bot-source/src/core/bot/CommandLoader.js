@@ -11,7 +11,13 @@ class CommandLoader {
      * @param {string} commandsPath 
      * @param {import('discord.js').Collection} commandsCollection 
      */
-    static loadCommands(commandsPath, commandsCollection) {
+    /**
+     * Load slash commands from directory into a target Collection.
+     * @param {string} commandsPath 
+     * @param {import('discord.js').Collection} commandsCollection 
+     * @param {Object} [container] Optional ServiceContainer for command Dependency Injection
+     */
+    static loadCommands(commandsPath, commandsCollection, container = null) {
         if (!fs.existsSync(commandsPath)) return 0;
 
         let loadedCount = 0;
@@ -24,6 +30,16 @@ class CommandLoader {
             for (const file of files) {
                 const command = require(path.join(folderPath, file));
                 if (command.data && command.execute) {
+                    if (container) {
+                        command.container = container;
+                        if (typeof command.configure === 'function') {
+                            try {
+                                command.configure(container);
+                            } catch (err) {
+                                console.warn(`[CommandLoader] Failed to configure command ${command.data.name}:`, err.message);
+                            }
+                        }
+                    }
                     commandsCollection.set(command.data.name, command);
                     loadedCount++;
                 }

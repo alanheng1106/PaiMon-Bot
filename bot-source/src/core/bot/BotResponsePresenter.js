@@ -1,5 +1,5 @@
 const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } = require('discord.js');
-const { Colors } = require('../../config');
+const { Colors, Emojis } = require('../../config');
 
 /**
  * BotResponsePresenter — Encapsulates UI response component formatting and delivery.
@@ -13,7 +13,7 @@ class BotResponsePresenter {
         const cleanTitle = title.replace(/^\s*(?:<a?:\w+:\d+>|\p{Extended_Pictographic})*\s*/gu, '').trim();
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Error)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:cross:1524603300752785550> ${cleanTitle}`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${Emojis.Error} ${cleanTitle}`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`${description}`));
 
@@ -33,7 +33,7 @@ class BotResponsePresenter {
         const cleanTitle = title.replace(/^\s*(?:<a?:\w+:\d+>|\p{Extended_Pictographic})*\s*/gu, '').trim();
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Success)
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> ${cleanTitle}`))
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${Emojis.Success} ${cleanTitle}`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`${description}`));
 

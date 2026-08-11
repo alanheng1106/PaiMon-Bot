@@ -15,9 +15,19 @@ module.exports = {
     category: 'valorant',
     helpText: '🔹 `/logout` - 登出 Riot 帳號 (支援單獨或全部登出)',
 
+    /** @type {import('../../core/ValorantClient')} */
+    valorantClient: null,
+
+    configure(container) {
+        if (container && container.has('valorant')) {
+            this.valorantClient = container.get('valorant');
+        }
+    },
+
     async execute(interaction, bot) {
+        const valorant = this.valorantClient || bot?.valorant;
         const userId = interaction.user.id;
-        const sessions = bot.valorant.getSessions(userId);
+        const sessions = valorant.getSessions(userId);
 
         if (!sessions) {
             const container = new ContainerBuilder()
@@ -32,7 +42,7 @@ module.exports = {
 
         if (riotIds.length === 1) {
             // Single account — logout directly
-            bot.valorant.removeSession(userId, riotIds[0]);
+            valorant.removeSession(userId, riotIds[0]);
             const container = new ContainerBuilder()
                 .setAccentColor(Colors.Success)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已登出`))
@@ -84,7 +94,7 @@ module.exports = {
             const selected = selection.values[0];
 
             if (selected === '__all__') {
-                bot.valorant.removeAllSessions(userId);
+                valorant.removeAllSessions(userId);
                 const container = new ContainerBuilder()
                     .setAccentColor(Colors.Success)
                     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已全部登出`))
@@ -92,7 +102,7 @@ module.exports = {
                     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`已成功登出所有 **${riotIds.length}** 個帳號.`));
                 await selection.update({ components: [container], flags: MessageFlags.IsComponentsV2 });
             } else {
-                bot.valorant.removeSession(userId, selected);
+                valorant.removeSession(userId, selected);
                 const container = new ContainerBuilder()
                     .setAccentColor(Colors.Success)
                     .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 已登出`))

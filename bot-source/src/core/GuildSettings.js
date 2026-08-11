@@ -1,40 +1,16 @@
-const fs = require('fs');
 const path = require('path');
+const BaseJsonFileStore = require('../utils/BaseJsonFileStore');
 const { Guild: GuildConfig } = require('../config');
 
 /**
  * Lightweight JSON-based guild settings persistence.
- * Reads from / writes to ./data/guild-settings.json.
- * Writes are debounced (500ms) to avoid frequent disk IO.
+ * Extends BaseJsonFileStore for debounced disk persistence.
  */
-class GuildSettings {
+class GuildSettings extends BaseJsonFileStore {
     constructor() {
-        this.dataDir = path.join(__dirname, '..', '..', 'data');
-        this.filePath = path.join(this.dataDir, 'guild-settings.json');
-        this.data = {};
-        this._debounceTimer = null;
-        this._load();
-    }
-
-    _load() {
-        try {
-            if (!fs.existsSync(this.dataDir)) {
-                fs.mkdirSync(this.dataDir, { recursive: true });
-            }
-            if (fs.existsSync(this.filePath)) {
-                this.data = JSON.parse(fs.readFileSync(this.filePath, 'utf8'));
-            }
-        } catch (err) {
-            console.error('[GuildSettings] Failed to load settings file:', err.message);
-            this.data = {};
-        }
-    }
-
-    _save() {
-        clearTimeout(this._debounceTimer);
-        this._debounceTimer = setTimeout(() => {
-            this._writeSync();
-        }, GuildConfig.SaveDebounceMs);
+        const dataDir = path.join(__dirname, '..', '..', 'data');
+        const filePath = path.join(dataDir, 'guild-settings.json');
+        super(dataDir, filePath, GuildConfig.SaveDebounceMs || 500);
     }
 
     /**
@@ -57,7 +33,7 @@ class GuildSettings {
     set(guildId, key, value) {
         if (!this.data[guildId]) this.data[guildId] = {};
         this.data[guildId][key] = value;
-        this._save();
+        this.save();
     }
 
     /**
@@ -84,27 +60,6 @@ class GuildSettings {
     setLinkFixerSettings(guildId, settings) {
         const current = this.getLinkFixerSettings(guildId);
         this.set(guildId, 'linkFixer', { ...current, ...settings });
-    }
-
-    /**
-     * Immediately persist to disk and cancel any pending debounce.
-     * Used during graceful shutdown to avoid data loss.
-     */
-    flush() {
-        clearTimeout(this._debounceTimer);
-        this._writeSync();
-    }
-
-    /** @private */
-    _writeSync() {
-        try {
-            if (!fs.existsSync(this.dataDir)) {
-                fs.mkdirSync(this.dataDir, { recursive: true });
-            }
-            fs.writeFileSync(this.filePath, JSON.stringify(this.data, null, 2), 'utf8');
-        } catch (err) {
-            console.error('[GuildSettings] Failed to save settings file:', err.message);
-        }
     }
 }
 

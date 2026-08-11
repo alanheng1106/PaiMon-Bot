@@ -22,10 +22,16 @@ class EventLoader {
             const event = require(filePath);
             if (event.name && event.execute) {
                 client.removeAllListeners(event.name);
+                const handler = (...args) => {
+                    if (args.includes(client)) {
+                        return event.execute(...args);
+                    }
+                    return event.execute(...args, client);
+                };
                 if (event.once) {
-                    client.once(event.name, (...args) => event.execute(...args, client));
+                    client.once(event.name, handler);
                 } else {
-                    client.on(event.name, (...args) => event.execute(...args, client));
+                    client.on(event.name, handler);
                 }
                 loadedCount++;
             }

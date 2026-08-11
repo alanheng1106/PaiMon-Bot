@@ -18,11 +18,29 @@ class DomainRegistry {
      * @param {Object} domainConfig 
      */
     register(domainConfig) {
-        if (!domainConfig || !domainConfig.id || !domainConfig.patterns) {
-            throw new Error('[DomainRegistry] Invalid domain configuration provided.');
-        }
+        this.#validateDomainConfig(domainConfig);
         this.#domains.set(domainConfig.id, Object.freeze({ ...domainConfig }));
         return this;
+    }
+
+    #validateDomainConfig(domainConfig) {
+        if (!domainConfig || typeof domainConfig !== 'object') {
+            throw new Error('[DomainRegistry] Invalid domain configuration: Must be an object.');
+        }
+        if (!domainConfig.id || typeof domainConfig.id !== 'string') {
+            throw new Error('[DomainRegistry] Invalid domain configuration: Missing required string property id.');
+        }
+        if (!Array.isArray(domainConfig.patterns) || domainConfig.patterns.length === 0) {
+            throw new Error(`[DomainRegistry] Invalid domain configuration: '${domainConfig.id}' must provide a non-empty patterns array.`);
+        }
+        for (const pattern of domainConfig.patterns) {
+            if (!(pattern instanceof RegExp)) {
+                throw new Error(`[DomainRegistry] Invalid domain configuration: Pattern in '${domainConfig.id}' must be an instance of RegExp.`);
+            }
+        }
+        if (domainConfig.providers && !Array.isArray(domainConfig.providers)) {
+            throw new Error(`[DomainRegistry] Invalid domain configuration: '${domainConfig.id}' providers must be an array.`);
+        }
     }
 
     /**

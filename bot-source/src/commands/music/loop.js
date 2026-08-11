@@ -21,9 +21,9 @@ module.exports = {
 
         // Cycle through loop modes: none → track → queue → none
         const modes = ['none', 'track', 'queue'];
-        const currentIndex = modes.indexOf(queue.loop ?? 'none');
+        const currentIndex = modes.indexOf(queue.loopMode ?? 'none');
         const nextMode = modes[(currentIndex + 1) % modes.length];
-        queue.loop = nextMode;
+        queue.setLoopMode(nextMode);
 
         const modeLabels = {
             none: '關閉',

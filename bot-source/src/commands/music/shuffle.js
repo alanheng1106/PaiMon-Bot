@@ -18,27 +18,18 @@ module.exports = {
         }
 
         const queue = bot.music.getQueue(interaction.guild.id);
-        if (!queue || queue.songs.length <= 1) {
+        if (!queue || queue.size <= 1) {
             return bot.sendError(interaction, '佇列不足', '佇列中至少需要 2 首歌曲才能打亂!');
         }
 
-        // Keep currently playing song at index 0, shuffle the rest
-        const current = queue.songs[0];
-        const rest = queue.songs.slice(1);
-
-        // Fisher-Yates shuffle
-        for (let i = rest.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [rest[i], rest[j]] = [rest[j], rest[i]];
-        }
-
-        queue.songs = [current, ...rest];
+        const shuffledCount = queue.size - 1;
+        queue.shuffle();
 
         const container = new ContainerBuilder()
             .setAccentColor(Colors.Music)
             .addTextDisplayComponents(new TextDisplayBuilder().setContent(`### <a:check:1524601509772529665> 佇列已打亂`))
             .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
-            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`已隨機打亂 **${rest.length}** 首歌曲的播放順序`));
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent(`已隨機打亂 **${shuffledCount}** 首歌曲的播放順序`));
 
         await interaction.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     }

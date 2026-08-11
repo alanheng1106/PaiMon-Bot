@@ -19,6 +19,15 @@ class DiscordSanitizer {
 
         return cleaned;
     }
+    /**
+     * Escape special regex characters in a string.
+     * @param {string} string 
+     * @returns {string} Escaped string
+     */
+    static escapeRegExp(string) {
+        if (!string || typeof string !== 'string') return '';
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
 }
 
 module.exports = DiscordSanitizer;

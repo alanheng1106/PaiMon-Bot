@@ -1,12 +1,9 @@
 /**
  * Per-user, per-command cooldown manager.
- * Automatically cleans up expired entries.
+ * Lazy expiration cleanup without accumulating setTimeout handles.
  */
 class CooldownManager {
-    constructor() {
-        // Map<commandName, Map<userId, expireTimestamp>>
-        this.cooldowns = new Map();
-    }
+    #cooldowns = new Map();
 
     /**
      * Check if a user is on cooldown for a command.
@@ -21,11 +18,11 @@ class CooldownManager {
     check(commandName, userId, cooldownSeconds) {
         if (!cooldownSeconds || cooldownSeconds <= 0) return null;
 
-        if (!this.cooldowns.has(commandName)) {
-            this.cooldowns.set(commandName, new Map());
+        if (!this.#cooldowns.has(commandName)) {
+            this.#cooldowns.set(commandName, new Map());
         }
 
-        const timestamps = this.cooldowns.get(commandName);
+        const timestamps = this.#cooldowns.get(commandName);
         const now = Date.now();
         const expireTime = timestamps.get(userId);
 
@@ -33,9 +30,8 @@ class CooldownManager {
             return ((expireTime - now) / 1000).toFixed(1);
         }
 
-        // Register cooldown, auto-cleanup after it expires
+        // Register cooldown, lazy clean-up on future checks
         timestamps.set(userId, now + cooldownSeconds * 1000);
-        setTimeout(() => timestamps.delete(userId), cooldownSeconds * 1000);
         return null;
     }
 }

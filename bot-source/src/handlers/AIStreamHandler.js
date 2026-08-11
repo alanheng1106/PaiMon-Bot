@@ -1,7 +1,10 @@
 const BaseMessageHandler = require('../pipeline/BaseMessageHandler');
+const DiscordStreamUpdater = require('../core/ai/DiscordStreamUpdater');
+const { AI: AIConfig } = require('../config');
 
 /**
  * AIStreamHandler — Handles chunk-by-chunk AI streaming responses, typing indicators, and placeholder message editing.
+ * Uses DiscordStreamUpdater to eliminate Fire-and-Forget async race conditions and 429 Rate Limits.
  */
 class AIStreamHandler extends BaseMessageHandler {
     /**
@@ -41,53 +44,35 @@ class AIStreamHandler extends BaseMessageHandler {
             allowedMentions: { parse: [] }
         }).catch(() => null);
 
-        let lastEditTime = 0;
-        let isRequestingDiscord = false;
-        const EDIT_THROTTLE_MS = 2000;
+        const streamUpdater = aiMessage ? new DiscordStreamUpdater(aiMessage, AIConfig.StreamThrottleMs) : null;
 
         try {
             const userName = message.member?.displayName || message.author.username;
 
             let images = [];
             if (imageAttachments.size > 0 && bot.ai) {
-                for (const attachment of imageAttachments.values()) {
-                    const base64 = await bot.ai.urlToBase64(attachment.url);
-                    if (base64) images.push(base64);
-                }
+                const fetchPromises = Array.from(imageAttachments.values()).map((att) => bot.ai.urlToBase64(att.url));
+                const results = await Promise.all(fetchPromises);
+                images = results.filter(Boolean);
             }
 
-            // 2. Call generateResponse and stream chunk updates to placeholder message
+            // 2. Call generateResponse and stream chunk updates using DiscordStreamUpdater
             const finalReply = await bot.ai.generateResponse(
                 userMessage,
                 message.channel.id,
                 userName,
                 async (currentText) => {
-                    const now = Date.now();
-
-                    // Throttle: Only update Discord at most once every EDIT_THROTTLE_MS to avoid rate limits
-                    if (now - lastEditTime > EDIT_THROTTLE_MS && !isRequestingDiscord && currentText.trim()) {
-                        lastEditTime = now;
-                        isRequestingDiscord = true;
-
-                        try {
-                            if (aiMessage) {
-                                await aiMessage.edit({
-                                    content: currentText + ' ✍️',
-                                    allowedMentions: { parse: [] }
-                                });
-                            }
-                        } catch (e) {
-                            console.error('[AIStreamHandler] Discord Edit Error:', e.message);
-                        } finally {
-                            isRequestingDiscord = false;
-                        }
+                    if (streamUpdater) {
+                        await streamUpdater.push(currentText);
                     }
                 },
                 images
             );
 
-            // 3. Apply final complete response without typing icon
-            if (aiMessage) {
+            // 3. Finalize response cleanly
+            if (streamUpdater) {
+                await streamUpdater.finalize(finalReply);
+            } else if (aiMessage) {
                 await aiMessage.edit({
                     content: finalReply,
                     allowedMentions: { parse: [] }
@@ -99,11 +84,11 @@ class AIStreamHandler extends BaseMessageHandler {
 
             if (aiMessage) {
                 await aiMessage
-                    .edit({ content: '抱歉，我思考的時候短路了！😵‍💫', allowedMentions: { parse: [] } })
+                    .edit({ content: '抱歉，我思考的时候短路了！😵‍💫', allowedMentions: { parse: [] } })
                     .catch((e) => console.warn('Ignored error:', e.message));
             } else {
                 message
-                    .reply('抱歉，我思考的時候短路了！😵‍💫')
+                    .reply('抱歉，我思考的时候短路了！😵‍💫')
                     .catch((e) => console.warn('Ignored error:', e.message));
             }
             return true;
@@ -112,4 +97,3 @@ class AIStreamHandler extends BaseMessageHandler {
 }
 
 module.exports = AIStreamHandler;
-

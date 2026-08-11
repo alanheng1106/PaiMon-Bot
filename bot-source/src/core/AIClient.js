@@ -1,33 +1,34 @@
-const { Ollama } = require('ollama');
-const { LRUCache } = require('lru-cache');
 const { AI: AIConfig } = require('../config');
+const ILLMProvider = require('./ai/ILLMProvider');
+const OllamaProvider = require('./ai/OllamaProvider');
 const ToolRegistry = require('./tools/ToolRegistry');
 const GetCurrentTimeTool = require('./tools/GetCurrentTimeTool');
 const WebSearchTool = require('./tools/WebSearchTool');
 const FilePromptProvider = require('./ai/FilePromptProvider');
 const ImageSynthesisService = require('./ai/ImageSynthesisService');
+const AIChatSessionManager = require('./ai/AIChatSessionManager');
 const DiscordSanitizer = require('../utils/DiscordSanitizer');
 
 /**
- * AIClient — Core AI service for LLM inference, tool execution, and context management.
- * Refactored for clean Dependency Injection (DIP), SRP, and Encapsulation (#).
+ * AIClient — Core AI service facade for LLM inference, tool execution, and context management.
+ * Refactored for clean Strategy Pattern (ILLMProvider), Dependency Injection (DIP), and SRP.
  */
 class AIClient {
-    #ollamaClient;
+    #llmProvider;
     #imageService;
     #toolRegistry;
-    #promptProvider;
-    #chats;
-    #historySize;
+    #sessionManager;
     #model;
     #visionModel;
 
     constructor(options = {}) {
         const {
+            llmProvider = null,
             ollamaClient = null,
             imageService = null,
             toolRegistry = null,
             promptProvider = null,
+            sessionManager = null,
             config = AIConfig
         } = options;
 
@@ -36,33 +37,24 @@ class AIClient {
             hfClient: options.hfClient
         });
 
-        // Ollama Client Init
-        if (ollamaClient) {
-            this.#ollamaClient = ollamaClient;
-        } else if (process.env.OLLAMA_API_KEY) {
-            this.#ollamaClient = new Ollama({
-                host: 'https://ollama.com',
-                headers: {
-                    Authorization: `Bearer ${process.env.OLLAMA_API_KEY}`
-                }
-            });
+        // LLM Provider Strategy Init (OCP / DIP)
+        if (llmProvider instanceof ILLMProvider) {
+            this.#llmProvider = llmProvider;
+        } else if (ollamaClient) {
+            this.#llmProvider = new OllamaProvider({ client: ollamaClient });
         } else {
-            console.warn('[AI] OLLAMA_API_KEY is not set. Cloud models will not work.');
-            this.#ollamaClient = null;
+            this.#llmProvider = new OllamaProvider();
         }
 
         this.#model = process.env.OLLAMA_MODEL || 'gpt-oss:120b-cloud';
         this.#visionModel = process.env.OLLAMA_VISION_MODEL || 'llava';
 
-        // Memory Leak Prevention: LRU Cache
-        this.#chats = new LRUCache({
-            max: config.MaxChannels || AIConfig.MaxChannels,
-            ttl: config.ChatTTL || AIConfig.ChatTTL
+        // Session Manager Init (SRP / DIP)
+        const effectivePromptProvider = promptProvider || new FilePromptProvider();
+        this.#sessionManager = sessionManager || new AIChatSessionManager({
+            promptProvider: effectivePromptProvider,
+            config
         });
-        this.#historySize = config.HistorySize || AIConfig.HistorySize;
-
-        // Prompt Provider Init (DIP)
-        this.#promptProvider = promptProvider || new FilePromptProvider();
 
         // ToolRegistry Init (DIP)
         if (toolRegistry) {
@@ -78,12 +70,16 @@ class AIClient {
         }
     }
 
+    get llmProvider() {
+        return this.#llmProvider;
+    }
+
     get tools() {
         return this.#toolRegistry.getDefinitions();
     }
 
     get ready() {
-        return !!this.#ollamaClient || this.#imageService.ready;
+        return this.#llmProvider.ready || this.#imageService.ready;
     }
 
     get imageReady() {
@@ -91,56 +87,37 @@ class AIClient {
     }
 
     get chats() {
-        return this.#chats;
+        return this.#sessionManager.chats;
+    }
+
+    get sessionManager() {
+        return this.#sessionManager;
     }
 
     get imageService() {
         return this.#imageService;
     }
 
-    _ensureSession(channelId) {
-        const systemPrompt = this.#promptProvider.getFormattedSystemPrompt();
-
-        if (!this.#chats.has(channelId)) {
-            this.#chats.set(channelId, [{ role: 'system', content: systemPrompt }]);
-        } else {
-            const history = this.#chats.get(channelId);
-            if (history[0] && history[0].role === 'system') {
-                history[0].content = systemPrompt;
-            }
-        }
-        return this.#chats.get(channelId);
+    #ensureSession(channelId) {
+        return this.#sessionManager.ensureSession(channelId);
     }
 
-    _pruneHistory(channelId) {
-        const history = this.#chats.get(channelId);
-        if (!history || history.length <= this.#historySize) return;
+    #pruneHistory(channelId) {
+        return this.#sessionManager.pruneHistory(channelId);
+    }
 
-        const systemPrompt = history[0];
-        let recentHistory = history.slice(-(this.#historySize - 1));
-
-        while (recentHistory.length > 0 && recentHistory[0].role === 'tool') {
-            recentHistory.shift();
-        }
-
-        this.#chats.set(channelId, [systemPrompt, ...recentHistory]);
+    #selectModel(requestMessages) {
+        const hasImages = requestMessages.some((m) => m.images && m.images.length > 0);
+        return hasImages ? this.#visionModel : this.#model;
     }
 
     addPassiveContext(channelId, userName, text) {
-        if (!text || text.trim().length < AIConfig.MinPassiveLength) return;
-
-        let history = this._ensureSession(channelId);
-
-        history.push({
-            role: 'user',
-            content: `[${userName}] (在旁邊聊天): ${text}`
-        });
-
-        this._pruneHistory(channelId);
+        return this.#sessionManager.addPassiveContext(channelId, userName, text);
     }
 
     async generateResponse(prompt, channelId = 'default', userName = '使用者', onUpdate = null, images = []) {
-        const sessionHistory = this._ensureSession(channelId);
+        const sessionHistory = this.#ensureSession(channelId);
+        const snapshotLength = sessionHistory.length;
 
         const userMessage = {
             role: 'user',
@@ -152,7 +129,7 @@ class AIClient {
         }
 
         sessionHistory.push(userMessage);
-        this._pruneHistory(channelId);
+        this.#pruneHistory(channelId);
 
         const requestMessages = [...sessionHistory];
 
@@ -161,62 +138,24 @@ class AIClient {
             const MAX_TOOL_ITERATIONS = 5;
             let iterations = 0;
 
-            const hasImages = requestMessages.some((m) => m.images && m.images.length > 0);
-            const currentModel = hasImages ? this.#visionModel : this.#model;
+            const currentModel = this.#selectModel(requestMessages);
 
             while (iterations < MAX_TOOL_ITERATIONS) {
                 iterations++;
 
-                if (!this.#ollamaClient) throw new Error('Ollama Client is not initialized. Missing API Key.');
-
-                const responseStream = await this.#ollamaClient.chat({
+                const stream = this.#llmProvider.chatStream({
                     model: currentModel,
                     messages: requestMessages,
-                    tools: this.tools,
-                    stream: true
+                    tools: this.tools
                 });
 
-                let currentContent = '';
-                let toolCalls = [];
-
-                for await (const chunk of responseStream) {
-                    if (chunk.message.tool_calls) {
-                        toolCalls = chunk.message.tool_calls;
-                    }
-
-                    if (chunk.message.content) {
-                        currentContent += chunk.message.content;
-
-                        if (toolCalls.length === 0 && onUpdate) {
-                            onUpdate(DiscordSanitizer.sanitize(currentContent));
-                        }
-                    }
-                }
+                const { currentContent, toolCalls } = await this.#consumeStream(stream, onUpdate);
 
                 if (toolCalls && toolCalls.length > 0) {
-                    requestMessages.push({
-                        role: 'assistant',
-                        content: currentContent,
-                        tool_calls: toolCalls
+                    await this.#executeToolCalls(toolCalls, requestMessages, {
+                        currentContent,
+                        meta: { onUpdate, channelId, userName }
                     });
-
-                    for (const toolCall of toolCalls) {
-                        const args = typeof toolCall.function.arguments === 'string'
-                            ? JSON.parse(toolCall.function.arguments)
-                            : toolCall.function.arguments || {};
-
-                        const toolResult = await this.#toolRegistry.execute(
-                            toolCall.function.name,
-                            args,
-                            { onUpdate, channelId, userName }
-                        );
-
-                        requestMessages.push({
-                            role: 'tool',
-                            name: toolCall.function.name,
-                            content: toolResult
-                        });
-                    }
                 } else {
                     finalReplyText = DiscordSanitizer.sanitize(currentContent);
                     sessionHistory.push({ role: 'assistant', content: finalReplyText });
@@ -230,9 +169,69 @@ class AIClient {
 
             return finalReplyText;
         } catch (error) {
-            console.error('[AIClient] Ollama Error:', error.message);
-            this.#chats.delete(channelId);
+            console.error('[AIClient] Inference Error:', error.message);
+            // Rollback session history to snapshot to prevent corrupt message role sequences
+            sessionHistory.splice(snapshotLength);
             throw error;
+        }
+    }
+
+    async #consumeStream(stream, onUpdate) {
+        let currentContent = '';
+        let toolCalls = [];
+
+        for await (const chunk of stream) {
+            if (chunk.toolCalls) {
+                toolCalls = chunk.toolCalls;
+            }
+
+            if (chunk.content) {
+                currentContent += chunk.content;
+
+                if (toolCalls.length === 0 && onUpdate) {
+                    try {
+                        await onUpdate(DiscordSanitizer.sanitize(currentContent));
+                    } catch (err) {
+                        console.warn('[AIClient] onUpdate error:', err.message);
+                    }
+                }
+            }
+        }
+
+        return { currentContent, toolCalls };
+    }
+
+    async #executeToolCalls(toolCalls, requestMessages, context) {
+        requestMessages.push({
+            role: 'assistant',
+            content: context.currentContent,
+            tool_calls: toolCalls
+        });
+
+        for (const toolCall of toolCalls) {
+            let args = {};
+            if (typeof toolCall.function.arguments === 'string') {
+                try {
+                    args = JSON.parse(toolCall.function.arguments);
+                } catch (parseErr) {
+                    console.warn(`[AIClient] Failed to parse tool arguments for ${toolCall.function?.name}:`, parseErr.message);
+                    args = {};
+                }
+            } else {
+                args = toolCall.function.arguments || {};
+            }
+
+            const toolResult = await this.#toolRegistry.execute(
+                toolCall.function.name,
+                args,
+                context.meta
+            );
+
+            requestMessages.push({
+                role: 'tool',
+                name: toolCall.function.name,
+                content: toolResult
+            });
         }
     }
 

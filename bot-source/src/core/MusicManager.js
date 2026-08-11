@@ -1,76 +1,61 @@
-const { Shoukaku, Connectors } = require('shoukaku');
 const { Music: MusicConfig } = require('../config');
 const MusicPresenter = require('./music/MusicPresenter');
+const GuildQueue = require('./music/GuildQueue');
+const LavalinkService = require('./music/LavalinkService');
+const Song = require('./music/Song');
 
 /**
  * MusicManager — Core audio playback and queue domain service.
  * Refactored for clean OOP / SOLID compliance:
  * - UI Card rendering delegated to MusicPresenter (SRP)
- * - State encapsulated via ES2022 private fields (#)
- * - Decoupled from direct BotClient back-reference (DIP)
+ * - Lavalink node management delegated to LavalinkService (SRP / DIP)
+ * - Explicit Dependency Injection via constructor contracts (DIP)
+ * - Queue state encapsulated within GuildQueue domain entities (Encapsulation / SRP)
  */
 class MusicManager {
-    #shoukaku;
-    #queues = new Map();
+    #lavalinkService;
     #settingsProvider;
+    #queues = new Map();
 
-    constructor(botOrShoukaku = null, settingsProvider = null) {
-        this.#settingsProvider = settingsProvider || (botOrShoukaku?.settings ? botOrShoukaku.settings : null);
-
-        if (botOrShoukaku && botOrShoukaku.shoukaku) {
-            this.#shoukaku = botOrShoukaku.shoukaku;
-        } else if (botOrShoukaku && (botOrShoukaku.user || botOrShoukaku.ws || botOrShoukaku.on)) {
-            // DiscordJS Client instance
-            const fs = require('fs');
-            let host = process.env.LAVALINK_HOST || 'lavalink';
-            const port = process.env.LAVALINK_PORT || '2333';
-
-            if (fs.existsSync('/.dockerenv') && (host === 'localhost' || host === '127.0.0.1')) {
-                host = 'lavalink';
-            }
-
-            const nodes = [
-                {
-                    name: 'Docker-Lavalink',
-                    url: `${host}:${port}`,
-                    auth: process.env.LAVALINK_PASSWORD || 'youshallnotpass',
-                    secure: process.env.LAVALINK_SECURE === 'true'
-                }
-            ];
-
-            this.#shoukaku = new Shoukaku(new Connectors.DiscordJS(botOrShoukaku), nodes, {
-                moveOnDisconnect: true,
-                reconnectTries: MusicConfig.ReconnectTries,
-                reconnectInterval: MusicConfig.ReconnectIntervalMs
-            });
-
-            this.#shoukaku.on('error', (node, err) => console.warn(`[Music Node Error] ${node}: ${err?.message || err}`));
-            this.#shoukaku.on('ready', (node) => console.log(`[Music] Audio Node Synced: ${node}`));
-
-            if (botOrShoukaku.isReady && botOrShoukaku.isReady()) {
-                this.#shoukaku.id = botOrShoukaku.user?.id || null;
-                for (const nodeOpt of nodes) {
-                    if (!this.#shoukaku.nodes.has(nodeOpt.name)) {
-                        this.#shoukaku.addNode(nodeOpt);
-                    }
-                }
-            }
-        } else {
-            this.#shoukaku = null;
+    /**
+     * @param {LavalinkService|Object} lavalinkService - LavalinkService instance
+     * @param {Object} [settingsProvider] - Settings provider for volume persistence
+     */
+    constructor(lavalinkService, settingsProvider = null) {
+        if (!lavalinkService) {
+            throw new Error('[MusicManager] LavalinkService instance is required.');
         }
+
+        this.#lavalinkService = lavalinkService;
+        this.#settingsProvider = settingsProvider;
     }
 
     get shoukaku() {
-        return this.#shoukaku;
+        return this.#lavalinkService?.shoukaku || this.#lavalinkService;
     }
 
-    get queues() {
-        return this.#queues;
+    /**
+     * Get a guild queue instance (read-only lookup, Encapsulation principle).
+     * @param {string} guildId 
+     * @returns {GuildQueue|null}
+     */
+    getQueue(guildId) {
+        return this.#queues.get(guildId) || null;
+    }
+
+    /**
+     * Check if active queue exists for guild.
+     * @param {string} guildId 
+     * @returns {boolean}
+     */
+    hasQueue(guildId) {
+        return this.#queues.has(guildId);
     }
 
     async search(query) {
-        if (!this.#shoukaku) throw new Error('Music servers are currently offline.');
-        const node = this.#shoukaku.options.nodeResolver(this.#shoukaku.nodes);
+        const shoukaku = this.shoukaku;
+        if (!shoukaku) throw new Error('Music servers are currently offline.');
+        const node = shoukaku.options.nodeResolver(shoukaku.nodes);
         if (!node) throw new Error('Music servers are currently offline.');
 
         const searchUrl = query.startsWith('http') ? query : `ytsearch:${query}`;
@@ -85,32 +70,23 @@ class MusicManager {
         return { isPlaylist: false, tracks: result.loadType === 'search' ? result.data : [result.data] };
     }
 
-    async _ensureSession(guild, channelId, textChannel) {
+    async #ensureSession(guild, channelId, textChannel) {
         if (!this.#queues.has(guild.id)) {
-            if (!this.#shoukaku) throw new Error('Music servers are currently offline.');
-            const player = await this.#shoukaku.joinVoiceChannel({
+            const shoukaku = this.shoukaku;
+            if (!shoukaku) throw new Error('Music servers are currently offline.');
+            const player = await shoukaku.joinVoiceChannel({
                 guildId: guild.id,
                 channelId,
                 shardId: guild.shardId || 0
             });
 
+            const queue = new GuildQueue(player, textChannel, channelId);
+
             const next = () => {
                 const q = this.#queues.get(guild.id);
                 if (!q) return;
 
-                const finishedSong = q.songs[0];
-                if (finishedSong) {
-                    q.lastSongIsTTS = finishedSong.isTTS;
-
-                    if (q.loop === 'track') {
-                        // Keep song at index 0, replay it
-                    } else if (q.loop === 'queue' && !finishedSong.isTTS) {
-                        q.songs.shift();
-                        q.songs.push(finishedSong);
-                    } else {
-                        q.songs.shift();
-                    }
-                }
+                q.advance();
                 this.processQueue(guild.id);
             };
 
@@ -121,11 +97,12 @@ class MusicManager {
             });
             player.on('closed', () => this.#queues.delete(guild.id));
 
-            this.#queues.set(guild.id, { player, songs: [], textChannel, voiceChannelId: channelId, loop: 'none' });
+            this.#queues.set(guild.id, queue);
 
             const savedVolume = this.#settingsProvider?.get(guild.id, 'volume');
             if (savedVolume) player.setGlobalVolume(savedVolume);
         }
+
         const q = this.#queues.get(guild.id);
         q.textChannel = textChannel;
         return q;
@@ -135,17 +112,19 @@ class MusicManager {
         const queue = this.#queues.get(guildId);
         if (!queue) return;
 
-        if (!queue.songs.length) {
+        if (queue.isEmpty()) {
             return;
         }
 
-        const song = queue.songs[0];
+        const song = queue.currentSong;
+        if (!song) return;
+
         try {
             await queue.player.playTrack({ track: { encoded: song.encoded } });
             if (song.resumePosition) {
                 await queue.player.seekTo(song.resumePosition);
             }
-            if (!song.isTTS && !song.resumePosition && queue.loop !== 'track') {
+            if (!song.isTTS && !song.resumePosition && queue.loopMode !== 'track') {
                 const payload = await MusicPresenter.buildNowPlayingMessage(
                     song,
                     queue.voiceChannelId,
@@ -155,48 +134,33 @@ class MusicManager {
             }
         } catch (err) {
             console.warn(`[MusicManager] Failed to play track in guild ${guildId}:`, err.message);
-            queue.songs.shift();
-            this.processQueue(guildId);
+            queue.shift();
+            setImmediate(() => this.processQueue(guildId));
         }
     }
 
     async play(voiceChannel, textChannel, track, user, options = {}) {
-        const queue = await this._ensureSession(voiceChannel.guild, voiceChannel.id, textChannel);
-        const wasEmpty = !queue.songs.length;
+        const queue = await this.#ensureSession(voiceChannel.guild, voiceChannel.id, textChannel);
+        const wasEmpty = queue.isEmpty();
 
-        const newSong = {
-            title: track.info.title,
-            author: track.info.author,
-            url: track.info.uri,
-            encoded: track.encoded,
-            duration: track.info.length,
-            thumbnail: track.info.artworkUrl || `https://img.youtube.com/vi/${track.info.identifier}/hqdefault.jpg`,
-            requester: { tag: user.tag, id: user.id },
-            isTTS: options.isTTS || false
-        };
+        const newSong = Song.fromLavalinkTrack(track, user, options);
 
         if (options.isTTS && !wasEmpty) {
-            if (!queue.songs[0].isTTS) {
-                const songToResume = { ...queue.songs[0], resumePosition: queue.player.position || 0 };
-                queue.songs.splice(1, 0, newSong, songToResume);
+            const currentPosition = queue.player?.position || 0;
+            const { requiresInterrupt } = queue.insertTTS(newSong, currentPosition);
+            if (requiresInterrupt && queue.player) {
                 queue.player.stopTrack();
-            } else {
-                let insertIndex = 1;
-                while (insertIndex < queue.songs.length && queue.songs[insertIndex].isTTS) {
-                    insertIndex++;
-                }
-                queue.songs.splice(insertIndex, 0, newSong);
             }
             return;
         }
 
-        queue.songs.push(newSong);
+        queue.addTrack(newSong);
 
         if (wasEmpty) await this.processQueue(voiceChannel.guild.id);
         else if (!options.isTTS) {
             const payload = await MusicPresenter.buildAddedToQueueMessage(
                 track.info,
-                queue.songs.length,
+                queue.size,
                 user,
                 (ms) => this.formatDuration(ms)
             );
@@ -205,61 +169,34 @@ class MusicManager {
     }
 
     async playPlaylist(voiceChannel, textChannel, playlistName, tracks, user) {
-        const queue = await this._ensureSession(voiceChannel.guild, voiceChannel.id, textChannel);
-        const wasEmpty = !queue.songs.length;
+        const queue = await this.#ensureSession(voiceChannel.guild, voiceChannel.id, textChannel);
+        const wasEmpty = queue.isEmpty();
 
-        tracks.forEach((t) =>
-            queue.songs.push({
-                title: t.info.title,
-                author: t.info.author,
-                url: t.info.uri,
-                encoded: t.encoded,
-                duration: t.info.length,
-                thumbnail: t.info.artworkUrl || `https://img.youtube.com/vi/${t.info.identifier}/hqdefault.jpg`,
-                requester: { tag: user.tag, id: user.id }
-            })
-        );
+        const songObjects = tracks.map((t) => Song.fromLavalinkTrack(t, user));
 
-        const payload = MusicPresenter.buildPlaylistAddedMessage(playlistName, tracks.length, user.tag);
+        queue.addPlaylist(songObjects);
+
+        const payload = MusicPresenter.buildPlaylistAddedMessage(playlistName, tracks.length, user.tag || user.username || 'User');
         textChannel.send(payload).catch((e) => console.warn('Ignored error:', e.message));
 
         if (wasEmpty) await this.processQueue(voiceChannel.guild.id);
     }
 
     formatDuration(ms) {
-        if (ms === 0) return '直播流';
-        const totalSeconds = Math.floor(ms / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        const hours = Math.floor(minutes / 60);
-
-        const m = minutes % 60;
-        const s = seconds < 10 ? `0${seconds}` : seconds;
-
-        if (hours > 0) return `${hours}:${m < 10 ? `0${m}` : m}:${s}`;
-        return `${m}:${s}`;
+        return MusicPresenter.formatDuration(ms);
     }
 
     createProgressBar(current, total, size = 15) {
-        const progress = Math.round((size * current) / total);
-        const emptyProgress = size - progress;
-
-        const progressText = '▇'.repeat(Math.max(0, progress));
-        const emptyProgressText = '—'.repeat(Math.max(0, emptyProgress));
-
-        return `\`${this.formatDuration(current)}\` [${progressText}🔘${emptyProgressText}] \`${this.formatDuration(total)}\``;
-    }
-
-    getQueue(guildId) {
-        return this.#queues.get(guildId);
+        return MusicPresenter.createProgressBar(current, total, size);
     }
 
     stop(guildId) {
         const q = this.#queues.get(guildId);
         if (q) {
-            q.songs = [];
-            q.loop = 'none';
-            q.player.stopTrack();
+            q.clear();
+            if (q.player) {
+                q.player.stopTrack();
+            }
         }
     }
 
@@ -280,12 +217,12 @@ class MusicManager {
     }
 
     async join(voiceChannel, textChannel) {
-        return await this._ensureSession(voiceChannel.guild, voiceChannel.id, textChannel);
+        return await this.#ensureSession(voiceChannel.guild, voiceChannel.id, textChannel);
     }
 
     leave(guildId) {
-        if (this.#shoukaku) {
-            this.#shoukaku.leaveVoiceChannel(guildId);
+        if (this.shoukaku) {
+            this.shoukaku.leaveVoiceChannel(guildId);
         }
         this.#queues.delete(guildId);
     }

@@ -8,12 +8,16 @@
  */
 
 const { LRUCache } = require('lru-cache');
+const { LinkFixer: LinkFixConfig } = require('../config');
 const DomainRegistry = require('./linkfixer/DomainRegistry');
+const LinkProviderRotator = require('./linkfixer/LinkProviderRotator');
 const DouyinMetadataScraper = require('./scrapers/DouyinMetadataScraper');
 const DefaultOGMetadataScraper = require('./scrapers/DefaultOGMetadataScraper');
+const DiscordSanitizer = require('../utils/DiscordSanitizer');
 
 class LinkFixer {
     #domainRegistry;
+    #rotator;
     #scrapers = [];
     #fixedMessages;
 
@@ -27,10 +31,17 @@ class LinkFixer {
             this.#domainRegistry = new DomainRegistry();
         }
 
-        // Memory Leak Prevention: Use LRU Cache with TTL (max 2000 entries, 24h expiration)
+        this.#rotator = new LinkProviderRotator(this.#domainRegistry, (urlStr, replacements) =>
+            this.#applyReplacement(urlStr, replacements)
+        );
+
+        // Memory Leak Prevention: Use LRU Cache with TTL from config
+        const maxCache = LinkFixConfig?.MaxCache || 2000;
+        const cacheTTL = LinkFixConfig?.CacheTTL || 86400000;
+
         this.#fixedMessages = new LRUCache({
-            max: 2000,
-            ttl: 86400000
+            max: maxCache,
+            ttl: cacheTTL
         });
 
         // Strategy Pattern: Register metadata scrapers
@@ -78,25 +89,19 @@ class LinkFixer {
     }
 
     isIgnored(rawContent, urlMatch) {
-        const dollarRegex = new RegExp(`\\$${escapeRegExp(urlMatch)}`, 'i');
-        if (dollarRegex.test(rawContent)) return true;
-
-        const angleRegex = new RegExp(`<${escapeRegExp(urlMatch)}>`, 'i');
-        if (angleRegex.test(rawContent)) return true;
-
-        const spoilerRegex = new RegExp(`\\|\\|\\s*${escapeRegExp(urlMatch)}\\s*\\|\\|`, 'i');
-        if (spoilerRegex.test(rawContent)) return true;
+        const escaped = DiscordSanitizer.escapeRegExp(urlMatch);
+        if (new RegExp(`\\$${escaped}`, 'i').test(rawContent)) return true;
+        if (new RegExp(`<${escaped}>`, 'i').test(rawContent)) return true;
+        if (new RegExp(`\\|\\|\\s*${escaped}\\s*\\|\\|`, 'i').test(rawContent)) return true;
 
         return false;
     }
 
-    async process(content, options = {}) {
-        const {
-            disabledDomains = [],
-            enabledDomains = [],
-            domainProviders = {}
-        } = options;
+    rotateLinkProvider(fixedUrl) {
+        return this.#rotator.rotateLinkProvider(fixedUrl);
+    }
 
+    async process(content, options = {}) {
         const fixedLinks = [];
         const items = [];
         const seen = new Set();
@@ -106,44 +111,67 @@ class LinkFixer {
         const currentDomains = this.#domainRegistry.getAll();
 
         for (const domain of currentDomains) {
-            const isEnabled = domain.enabledByDefault
-                ? !disabledDomains.includes(domain.id)
-                : enabledDomains.includes(domain.id);
+            const provider = this.#resolveProviderForDomain(domain, options);
+            if (!provider) continue;
 
-            if (!isEnabled) continue;
+            const res = this.#processDomainPatterns(content, domain, provider, seen, replacedContent);
+            if (res.modified) {
+                fixedLinks.push(...res.fixedLinks);
+                items.push(...res.items);
+                replacedContent = res.replacedContent;
+                modified = true;
+            }
+        }
 
-            const providerId = domainProviders[domain.id];
-            const provider = domain.providers.find(p => p.id === providerId) ||
-                domain.providers.find(p => p.default) ||
-                domain.providers[0];
+        return { fixedLinks, items, replacedContent, modified };
+    }
 
-            if (!provider || !provider.replacements) continue;
+    #resolveProviderForDomain(domain, options) {
+        const { disabledDomains = [], enabledDomains = [], domainProviders = {} } = options;
+        const isEnabled = domain.enabledByDefault
+            ? !disabledDomains.includes(domain.id)
+            : enabledDomains.includes(domain.id);
 
-            for (const pattern of domain.patterns) {
-                const matches = Array.from(content.matchAll(pattern));
-                for (const match of matches) {
-                    let originalUrl = match[0].replace(/[>.),;]+$/, '');
+        if (!isEnabled) return null;
 
-                    if (seen.has(originalUrl)) continue;
-                    if (this.isIgnored(content, originalUrl)) continue;
+        const providerId = domainProviders[domain.id];
+        const provider = domain.providers.find(p => p.id === providerId) ||
+            domain.providers.find(p => p.default) ||
+            domain.providers[0];
 
-                    seen.add(originalUrl);
+        return (provider && provider.replacements) ? provider : null;
+    }
 
-                    const fixedUrl = this._applyReplacement(originalUrl, provider.replacements);
-                    if (fixedUrl) {
-                        fixedLinks.push(fixedUrl);
-                        items.push({
-                            originalUrl,
-                            fixedUrl,
-                            domainId: domain.id,
-                            domainName: domain.name,
-                            color: domain.color,
-                            providerId: provider.id,
-                            providerName: provider.name
-                        });
-                        replacedContent = replacedContent.replace(originalUrl, fixedUrl);
-                        modified = true;
-                    }
+    #processDomainPatterns(content, domain, provider, seen, currentReplaced) {
+        const fixedLinks = [];
+        const items = [];
+        let replacedContent = currentReplaced;
+        let modified = false;
+
+        for (const pattern of domain.patterns) {
+            const matches = Array.from(content.matchAll(pattern));
+            for (const match of matches) {
+                let originalUrl = match[0].replace(/[>.),;]+$/, '');
+
+                if (seen.has(originalUrl)) continue;
+                if (this.isIgnored(content, originalUrl)) continue;
+
+                seen.add(originalUrl);
+
+                const fixedUrl = this.#applyReplacement(originalUrl, provider.replacements);
+                if (fixedUrl) {
+                    fixedLinks.push(fixedUrl);
+                    items.push({
+                        originalUrl,
+                        fixedUrl,
+                        domainId: domain.id,
+                        domainName: domain.name,
+                        color: domain.color,
+                        providerId: provider.id,
+                        providerName: provider.name
+                    });
+                    replacedContent = replacedContent.replace(originalUrl, fixedUrl);
+                    modified = true;
                 }
             }
         }
@@ -152,29 +180,11 @@ class LinkFixer {
     }
 
     reverseParse(fixedUrl) {
-        const currentDomains = this.#domainRegistry.getAll();
-        for (const domain of currentDomains) {
-            for (const provider of domain.providers) {
-                for (const r of provider.replacements) {
-                    if (fixedUrl.includes(r.new)) {
-                        const originalUrl = fixedUrl.replace(r.new, r.old);
-                        return { domain, provider, originalUrl };
-                    }
-                }
-            }
-        }
-        return null;
+        return this.#rotator.reverseParse(fixedUrl);
     }
 
     getNextProvider(domainId, currentProviderId) {
-        const domain = this.#domainRegistry.getById(domainId);
-        if (!domain || domain.providers.length <= 1) return null;
-
-        const index = domain.providers.findIndex(p => p.id === currentProviderId);
-        if (index === -1) return domain.providers[0];
-
-        const nextIndex = (index + 1) % domain.providers.length;
-        return domain.providers[nextIndex];
+        return this.#rotator.getNextProvider(domainId, currentProviderId);
     }
 
     /**
@@ -195,7 +205,7 @@ class LinkFixer {
     }
 
     /** @private */
-    _applyReplacement(urlStr, replacements) {
+    #applyReplacement(urlStr, replacements) {
         if (!replacements || replacements.length === 0) {
             return urlStr;
         }
@@ -219,16 +229,12 @@ class LinkFixer {
         } catch (e) {
             for (const r of replacements) {
                 if (urlStr.includes(r.old)) {
-                    return urlStr.replace(new RegExp(`(www\\.)?${escapeRegExp(r.old)}`, 'gi'), r.new);
+                    return urlStr.replace(new RegExp(`(www\\.)?${DiscordSanitizer.escapeRegExp(r.old)}`, 'gi'), r.new);
                 }
             }
         }
         return null;
     }
-}
-
-function escapeRegExp(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 module.exports = LinkFixer;

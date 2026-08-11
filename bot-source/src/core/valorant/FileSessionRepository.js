@@ -1,74 +1,53 @@
-const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const BaseJsonFileStore = require('../../utils/BaseJsonFileStore');
 const { Valorant: ValConfig } = require('../../config');
 
 /**
  * FileSessionRepository — Manages persistence and encryption for Valorant sessions.
- * Refactored for clean OOP / SOLID compliance (SRP & Encapsulation).
+ * Refactored to extend BaseJsonFileStore for clean OOP & DRY compliance.
  */
-class FileSessionRepository {
-    #dataDir;
-    #filePath;
+class FileSessionRepository extends BaseJsonFileStore {
     #encryptionKey;
-    #sessions = {};
-    #debounceTimer = null;
 
     constructor(dataDir = null, filePath = null, encryptionSource = null) {
-        this.#dataDir = dataDir || path.join(__dirname, '..', '..', '..', 'data');
-        this.#filePath = filePath || path.join(this.#dataDir, 'val-sessions.json');
+        const defaultDataDir = dataDir || path.join(__dirname, '..', '..', '..', 'data');
+        const defaultFilePath = filePath || path.join(defaultDataDir, 'val-sessions.json');
         
+        if (!encryptionSource && !process.env.ENCRYPTION_KEY) {
+            console.warn('[FileSessionRepository] ENCRYPTION_KEY is not set. Falling back to default token hash.');
+        }
+
         const source = encryptionSource || process.env.ENCRYPTION_KEY || process.env.DISCORD_TOKEN || 'no-key-configured';
+        
+        super(defaultDataDir, defaultFilePath, ValConfig.SaveDebounceMs || 1000);
+
         this.#encryptionKey = crypto.createHash('sha256').update(String(source)).digest();
         this.load();
     }
 
-    /**
-     * Load encrypted session file from disk into memory.
-     */
-    load() {
+    /** @override */
+    _parseData(raw) {
         try {
-            if (!fs.existsSync(this.#dataDir)) {
-                fs.mkdirSync(this.#dataDir, { recursive: true });
+            let keyInitialized = false;
+            try {
+                keyInitialized = Boolean(this.#encryptionKey);
+            } catch {
+                keyInitialized = false;
             }
-            if (fs.existsSync(this.#filePath)) {
-                const encryptedData = fs.readFileSync(this.#filePath, 'utf8');
-                if (encryptedData.trim()) {
-                    const decryptedData = this.#decrypt(encryptedData);
-                    this.#sessions = JSON.parse(decryptedData);
-                }
-            }
+
+            const decryptedData = keyInitialized ? this.#decrypt(raw) : raw;
+            return JSON.parse(decryptedData);
         } catch (err) {
-            console.error('[FileSessionRepository] Failed to load sessions:', err.message);
-            this.#sessions = {};
+            console.warn('[FileSessionRepository] Failed to parse session data:', err.message);
+            return {};
         }
     }
 
-    /**
-     * Save sessions to disk with debounce timer.
-     */
-    save() {
-        clearTimeout(this.#debounceTimer);
-        this.#debounceTimer = setTimeout(() => {
-            this.flush();
-        }, ValConfig.SaveDebounceMs || 1000);
-    }
-
-    /**
-     * Immediately write sessions to disk.
-     */
-    flush() {
-        clearTimeout(this.#debounceTimer);
-        try {
-            if (!fs.existsSync(this.#dataDir)) {
-                fs.mkdirSync(this.#dataDir, { recursive: true });
-            }
-            const rawData = JSON.stringify(this.#sessions, null, 2);
-            const encryptedData = this.#encrypt(rawData);
-            fs.writeFileSync(this.#filePath, encryptedData, 'utf8');
-        } catch (err) {
-            console.error('[FileSessionRepository] Failed to save sessions:', err.message);
-        }
+    /** @override */
+    _serializeData(data) {
+        const rawData = JSON.stringify(data, null, 2);
+        return this.#encrypt(rawData);
     }
 
     /**
@@ -77,7 +56,7 @@ class FileSessionRepository {
      * @returns {Object|null} Map of riotId -> sessionData or null
      */
     getUserSessions(discordUserId) {
-        const userSessions = this.#sessions[discordUserId];
+        const userSessions = this.data[discordUserId];
         if (!userSessions || Object.keys(userSessions).length === 0) return null;
         return { ...userSessions };
     }
@@ -86,17 +65,17 @@ class FileSessionRepository {
      * Get a specific session for a user and Riot ID.
      */
     getSession(discordUserId, riotId) {
-        return this.#sessions[discordUserId]?.[riotId] || null;
+        return this.data[discordUserId]?.[riotId] || null;
     }
 
     /**
      * Add or update a session.
      */
     setSession(discordUserId, riotId, sessionData) {
-        if (!this.#sessions[discordUserId]) {
-            this.#sessions[discordUserId] = {};
+        if (!this.data[discordUserId]) {
+            this.data[discordUserId] = {};
         }
-        this.#sessions[discordUserId][riotId] = {
+        this.data[discordUserId][riotId] = {
             ...sessionData,
             tokenExpiresAt: sessionData.tokenExpiresAt || (Date.now() + ValConfig.TokenLifetimeMs)
         };
@@ -107,10 +86,10 @@ class FileSessionRepository {
      * Remove a specific session.
      */
     removeSession(discordUserId, riotId) {
-        if (this.#sessions[discordUserId]) {
-            delete this.#sessions[discordUserId][riotId];
-            if (Object.keys(this.#sessions[discordUserId]).length === 0) {
-                delete this.#sessions[discordUserId];
+        if (this.data[discordUserId]) {
+            delete this.data[discordUserId][riotId];
+            if (Object.keys(this.data[discordUserId]).length === 0) {
+                delete this.data[discordUserId];
             }
             this.save();
         }
@@ -120,7 +99,7 @@ class FileSessionRepository {
      * Remove all sessions for a Discord user.
      */
     removeAllSessions(discordUserId) {
-        delete this.#sessions[discordUserId];
+        delete this.data[discordUserId];
         this.save();
     }
 
@@ -134,14 +113,15 @@ class FileSessionRepository {
             encrypted = Buffer.concat([encrypted, cipher.final()]);
             return iv.toString('hex') + ':' + encrypted.toString('hex');
         } catch (e) {
+            console.warn('[FileSessionRepository] Encryption error:', e.message);
             return text;
         }
     }
 
     /** @private */
     #decrypt(text) {
-        if (text.trim().startsWith('{')) return text; // Plaintext JSON fallback
         try {
+            if (!this.#encryptionKey || text.trim().startsWith('{')) return text; // Plaintext JSON fallback
             const textParts = text.split(':');
             const iv = Buffer.from(textParts.shift(), 'hex');
             const encryptedText = Buffer.from(textParts.join(':'), 'hex');
@@ -150,7 +130,8 @@ class FileSessionRepository {
             decrypted = Buffer.concat([decrypted, decipher.final()]);
             return decrypted.toString();
         } catch (e) {
-            throw new Error('Decryption failed, invalid key or corrupted data');
+            console.warn('[FileSessionRepository] Decryption error:', e.message);
+            return text;
         }
     }
 }
