@@ -3,6 +3,7 @@ const ILLMProvider = require('./ai/ILLMProvider');
 const OllamaProvider = require('./ai/OllamaProvider');
 const ToolRegistry = require('./tools/ToolRegistry');
 const GetCurrentTimeTool = require('./tools/GetCurrentTimeTool');
+const CreateFileTool = require('./tools/CreateFileTool');
 const WebSearchTool = require('./tools/WebSearchTool');
 const FilePromptProvider = require('./ai/FilePromptProvider');
 const ImageSynthesisService = require('./ai/ImageSynthesisService');
@@ -62,6 +63,7 @@ class AIClient {
         } else {
             this.#toolRegistry = new ToolRegistry();
             this.#toolRegistry.register(new GetCurrentTimeTool());
+            this.#toolRegistry.register(new CreateFileTool());
             if (process.env.SERPER_API_KEY) {
                 this.#toolRegistry.register(new WebSearchTool());
             } else {
@@ -135,6 +137,7 @@ class AIClient {
 
         try {
             let finalReplyText = '';
+            const attachments = [];
             const MAX_TOOL_ITERATIONS = 5;
             let iterations = 0;
 
@@ -154,7 +157,7 @@ class AIClient {
                 if (toolCalls && toolCalls.length > 0) {
                     await this.#executeToolCalls(toolCalls, requestMessages, {
                         currentContent,
-                        meta: { onUpdate, channelId, userName }
+                        meta: { onUpdate, channelId, userName, attachments }
                     });
                 } else {
                     finalReplyText = DiscordSanitizer.sanitize(currentContent);
@@ -165,6 +168,13 @@ class AIClient {
 
             if (iterations >= MAX_TOOL_ITERATIONS && !finalReplyText) {
                 throw new Error('[AIClient] Reached maximum tool execution limit (5 iterations).');
+            }
+
+            if (attachments.length > 0) {
+                return {
+                    text: finalReplyText,
+                    attachments
+                };
             }
 
             return finalReplyText;

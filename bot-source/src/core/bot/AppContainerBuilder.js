@@ -16,6 +16,7 @@ const DomainRegistry = require('../linkfixer/DomainRegistry');
 const FilePromptProvider = require('../ai/FilePromptProvider');
 const ToolRegistry = require('../tools/ToolRegistry');
 const GetCurrentTimeTool = require('../tools/GetCurrentTimeTool');
+const CreateFileTool = require('../tools/CreateFileTool');
 const WebSearchTool = require('../tools/WebSearchTool');
 const ComponentRouter = require('../components/ComponentRouter');
 const ValUrlButtonHandler = require('../components/ValUrlButtonHandler');
@@ -43,6 +44,7 @@ class AppContainerBuilder {
         container.register('toolRegistry', () => {
             const registry = new ToolRegistry();
             registry.register(new GetCurrentTimeTool());
+            registry.register(new CreateFileTool());
             if (process.env.SERPER_API_KEY) {
                 registry.register(new WebSearchTool());
             }

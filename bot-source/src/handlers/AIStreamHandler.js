@@ -1,9 +1,10 @@
+const { AttachmentBuilder } = require('discord.js');
 const BaseMessageHandler = require('../pipeline/BaseMessageHandler');
 const DiscordStreamUpdater = require('../core/ai/DiscordStreamUpdater');
 const { AI: AIConfig } = require('../config');
 
 /**
- * AIStreamHandler — Handles chunk-by-chunk AI streaming responses, typing indicators, and placeholder message editing.
+ * AIStreamHandler — Handles chunk-by-chunk AI streaming responses, typing indicators, and file attachment delivery.
  * Uses DiscordStreamUpdater to eliminate Fire-and-Forget async race conditions and 429 Rate Limits.
  */
 class AIStreamHandler extends BaseMessageHandler {
@@ -57,7 +58,7 @@ class AIStreamHandler extends BaseMessageHandler {
             }
 
             // 2. Call generateResponse and stream chunk updates using DiscordStreamUpdater
-            const finalReply = await bot.ai.generateResponse(
+            const responseResult = await bot.ai.generateResponse(
                 userMessage,
                 message.channel.id,
                 userName,
@@ -69,14 +70,28 @@ class AIStreamHandler extends BaseMessageHandler {
                 images
             );
 
-            // 3. Finalize response cleanly
+            let finalReplyText = typeof responseResult === 'object' ? responseResult.text : responseResult;
+            let attachments = typeof responseResult === 'object' ? (responseResult.attachments || []) : [];
+
+            // Fallback: If no tool generated attachments, check if user explicitly requested a file download
+            if (attachments.length === 0) {
+                attachments = this.#extractFallbackAttachments(userMessage, finalReplyText);
+            }
+
+            const files = attachments.map((att) => {
+                return new AttachmentBuilder(Buffer.from(att.content, 'utf-8'), { name: att.filename });
+            });
+
+            // 3. Finalize response cleanly with attachments
             if (streamUpdater) {
-                await streamUpdater.finalize(finalReply);
+                await streamUpdater.finalize(finalReplyText, files);
             } else if (aiMessage) {
-                await aiMessage.edit({
-                    content: finalReply,
+                const payload = {
+                    content: finalReplyText,
                     allowedMentions: { parse: [] }
-                });
+                };
+                if (files.length > 0) payload.files = files;
+                await aiMessage.edit(payload);
             }
             return true;
         } catch (error) {
@@ -93,6 +108,54 @@ class AIStreamHandler extends BaseMessageHandler {
             }
             return true;
         }
+    }
+
+    /**
+     * Extracts attachments from code blocks if user's prompt explicitly requested file saving/downloading.
+     * @param {string} userPrompt 
+     * @param {string} replyText 
+     * @returns {Array<{filename: string, content: string}>}
+     */
+    #extractFallbackAttachments(userPrompt, replyText) {
+        if (!userPrompt || !replyText) return [];
+
+        const isFileRequest = /(?:存成|輸出成|下載|生成|打包).*(?:檔|文件|\.py|\.js|\.json|\.txt|\.html|\.md|\.css|\.csv)/i.test(userPrompt);
+        if (!isFileRequest) return [];
+
+        const codeBlockRegex = /```(?:(\w+)\r?\n)?([\s\S]*?)```/g;
+        const attachments = [];
+        let match;
+        let index = 1;
+
+        while ((match = codeBlockRegex.exec(replyText)) !== null) {
+            const lang = match[1] || 'txt';
+            const code = match[2].trim();
+            if (!code) continue;
+
+            const filenameMatch = code.match(/^(?:#|\/\/|\/\*|<!--)\s*([\w.-]+\.\w+)/m);
+            let filename = filenameMatch ? filenameMatch[1] : null;
+
+            if (!filename) {
+                const extMap = {
+                    python: 'py', py: 'py',
+                    javascript: 'js', js: 'js',
+                    typescript: 'ts', ts: 'ts',
+                    html: 'html', css: 'css',
+                    json: 'json', markdown: 'md', md: 'md',
+                    bash: 'sh', sh: 'sh', csv: 'csv'
+                };
+                const ext = extMap[lang.toLowerCase()] || lang.toLowerCase();
+                filename = `generated_file_${index}.${ext}`;
+            }
+
+            attachments.push({
+                filename,
+                content: code
+            });
+            index++;
+        }
+
+        return attachments;
     }
 }
 

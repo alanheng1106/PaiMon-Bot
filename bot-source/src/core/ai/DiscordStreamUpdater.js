@@ -80,7 +80,7 @@ class DiscordStreamUpdater {
      * Cancels pending timers and awaits final edit promise.
      * @param {string} finalText 
      */
-    async finalize(finalText) {
+    async finalize(finalText, files = []) {
         if (this.#timer) {
             clearTimeout(this.#timer);
             this.#timer = null;
@@ -89,10 +89,14 @@ class DiscordStreamUpdater {
         this.#isProcessing = false;
 
         if (this.#message && finalText) {
-            await this.#message.edit({
+            const payload = {
                 content: finalText,
                 allowedMentions: { parse: [] }
-            }).catch((err) => console.warn('[DiscordStreamUpdater] Finalize edit error:', err.message));
+            };
+            if (files && files.length > 0) {
+                payload.files = files;
+            }
+            await this.#message.edit(payload).catch((err) => console.warn('[DiscordStreamUpdater] Finalize edit error:', err.message));
         }
     }
 }
