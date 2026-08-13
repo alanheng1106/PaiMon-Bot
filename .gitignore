@@ -17,3 +17,7 @@ val-sessions.json
 # Cookies
 cookies.txt
 bot-source/data/
+
+# Temporary test outputs
+bot-source/tests/temp_val_test/
+
