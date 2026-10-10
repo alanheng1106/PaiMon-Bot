@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Bun
+bun.lockb
+
+# Build output (no longer used with Bun, but just in case)
+dist/
+
+# Environment variables - NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+
+# Runtime data & User memories (Do not commit user data / server settings / caches)
+data/*
+!data/.gitkeep
+
+# Test artifacts
+data-test*/
