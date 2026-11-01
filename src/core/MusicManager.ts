@@ -215,7 +215,15 @@ class MusicManager {
                 this.processQueue(guild.id);
             };
 
-            player.on('end', next);
+            player.on('end', (data: any) => {
+                const reason = data?.reason;
+                // Exclude replaced (new track playing) and cleanup (node/player destroyed)
+                if (reason === 'replaced' || reason === 'cleanup') {
+                    return;
+                }
+                next();
+            });
+
             player.on('exception', (reason: any) => {
                 const message = reason?.exception?.message || reason?.message || '音訊載入失敗';
                 console.warn(`[Lavalink Track Exception] Guild ${guild.id}:`, message);
@@ -224,17 +232,17 @@ class MusicManager {
                     const payload = MusicPresenter.buildTrackExceptionMessage(q.currentSong, message);
                     q.textChannel.send(payload).catch(() => {});
                 }
-                next();
+                // Do NOT call next() here: Lavalink automatically emits a TrackEndEvent with reason 'loadFailed' after an exception
             });
+
             player.on('stuck', (data: any) => {
                 console.warn(`[Lavalink Track Stuck] Guild ${guild.id}:`, data);
-                next();
+                const q = this.#queues.get(guild.id);
+                // Actively stop the stuck track; Lavalink will emit TrackEndEvent to advance cleanly
+                q?.player?.stopTrack();
             });
-            (player as any).on('error', (err: any) => {
-                console.error('[Play Error]', err);
-                next();
-            });
-            player.on('closed', () => this.#queues.delete(guild.id));
+
+            player.on('closed', () => this.destroyQueue(guild.id));
 
             this.#queues.set(guild.id, queue);
 
@@ -378,15 +386,19 @@ class MusicManager {
         return await this.#ensureSession(voiceChannel.guild, voiceChannel.id, textChannel);
     }
 
-    leave(guildId: string): void {
+    destroyQueue(guildId: string): void {
         const q = this.#queues.get(guildId);
         if (q) {
-            q.clearNowPlayingTimer?.();
+            q.destroy();
+            this.#queues.delete(guildId);
         }
+    }
+
+    leave(guildId: string): void {
+        this.destroyQueue(guildId);
         if (this.shoukaku) {
             this.shoukaku.leaveVoiceChannel(guildId);
         }
-        this.#queues.delete(guildId);
     }
 }
 

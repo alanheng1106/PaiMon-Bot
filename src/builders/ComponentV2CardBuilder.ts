@@ -26,6 +26,7 @@ import {
 import { LinkFixer as LinkFixConfig } from '../config';
 import { LinkFixItem } from '../core/LinkFixer';
 import { ScrapedMetadata } from '../core/scrapers/BaseMetadataScraper';
+import ColorUtils from '../utils/ColorUtils';
 
 class ComponentV2CardBuilder {
     /**
@@ -98,11 +99,7 @@ class ComponentV2CardBuilder {
      */
     static resolveColorInt(hexStr?: string | number): number {
         const defaultColor = LinkFixConfig?.DefaultCardColor || 0x00aeec;
-        if (!hexStr) return defaultColor;
-        if (typeof hexStr === 'number') return hexStr;
-        const cleanHex = hexStr.replace('#', '');
-        const num = parseInt(cleanHex, 16);
-        return isNaN(num) ? defaultColor : num;
+        return ColorUtils.hexToInt(hexStr, defaultColor);
     }
 }
 

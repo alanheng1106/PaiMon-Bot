@@ -65,7 +65,11 @@ const command: Command = {
                 accentColor
             });
 
-            await interaction.followUp(payload);
+            if (typeof interaction.editReply === 'function') {
+                await interaction.editReply(payload);
+            } else if (typeof interaction.followUp === 'function') {
+                await interaction.followUp(payload);
+            }
 
             // 啟動 Option 1：安全實時刷新循環（5 秒間隔，符合 Discord Rate Limit 規範）
             if (currentSong.duration > 0) {
@@ -78,6 +82,8 @@ const command: Command = {
                 }
 
                 const songIdentifier = currentSong.encoded || currentSong.title;
+                const startTime = Date.now();
+                const MAX_LIFETIME_MS = 14 * 60 * 1000; // 14 minutes Discord webhook token lifetime
                 let isFinalized = false;
                 let endTimeout: any = null;
 
@@ -129,6 +135,18 @@ const command: Command = {
                         if (isFinalized) {
                             if (typeof queue?.clearNowPlayingTimer === 'function') {
                                 queue.clearNowPlayingTimer();
+                            } else {
+                                clearInterval(timer);
+                            }
+                            return;
+                        }
+
+                        // 14 分鐘 Discord Webhook Token 過期安全防護（主動結算並終止循環）
+                        if (Date.now() - startTime >= MAX_LIFETIME_MS) {
+                            await finalizer();
+                            const activeQueue = bot.music.getQueue(interaction.guild.id);
+                            if (typeof activeQueue?.clearNowPlayingTimer === 'function') {
+                                activeQueue.clearNowPlayingTimer();
                             } else {
                                 clearInterval(timer);
                             }
@@ -222,9 +240,14 @@ const command: Command = {
                             }
                         }
                     } catch {
-                        // 遇到 Discord 10008 (訊息已被刪除)、權限不足或 Token 過期時自動退出
+                        // 遇到 Discord 10008 (訊息已被刪除)、權限不足或 Token 過期時自動退出並清理隊列定時器
+                        isFinalized = true;
                         clearInterval(timer);
                         if (endTimeout) clearTimeout(endTimeout);
+                        const q = bot.music.getQueue(interaction.guild.id);
+                        if (typeof q?.clearNowPlayingTimer === 'function') {
+                            q.clearNowPlayingTimer();
+                        }
                     }
                 }, NOWPLAYING_REFRESH_INTERVAL_MS);
 

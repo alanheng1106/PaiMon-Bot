@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, PresenceStatusData } from 'discord.js';
+import OwnerUtils from '../../utils/OwnerUtils';
 import type BotClient from '../../core/BotClient';
 import type { Command } from '../../types';
 
@@ -21,8 +22,7 @@ const command: Command = {
     category: 'owner',
     helpText: '🔹 `/setstatus [狀態]` - 切換機器人的線上狀態（僅限擁有者）',
     async execute(interaction: ChatInputCommandInteraction, bot: BotClient) {
-        const ownerId = process.env.OWNER_ID;
-        if (!ownerId || interaction.user.id !== ownerId) {
+        if (!OwnerUtils.isOwner(interaction.user.id)) {
             return bot.sendError(interaction, '權限不足', '此指令僅限機器人擁有者使用。');
         }
 

@@ -37,9 +37,16 @@ describe('ColorUtils (Centralized Color Utilities)', () => {
             assert.strictEqual(ColorUtils.hexToInt('FF0000'), 0xff0000);
         });
 
+        it('returns raw number directly when input is already an integer', () => {
+            assert.strictEqual(ColorUtils.hexToInt(0x5865f2), 0x5865f2);
+            assert.strictEqual(ColorUtils.hexToInt(0, 0x123456), 0);
+        });
+
         it('returns fallback for invalid input', () => {
             assert.strictEqual(ColorUtils.hexToInt('invalid', 0x123456), 0x123456);
             assert.strictEqual(ColorUtils.hexToInt(null, 0x123456), 0x123456);
+            assert.strictEqual(ColorUtils.hexToInt(undefined, 0x123456), 0x123456);
+            assert.strictEqual(ColorUtils.hexToInt(NaN, 0x123456), 0x123456);
         });
     });
 

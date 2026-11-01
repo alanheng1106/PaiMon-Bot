@@ -16,6 +16,7 @@ import {
     PermissionFlagsBits
 } from 'discord.js';
 import { Colors, Emojis, EmojiIds } from '../../config';
+import OwnerUtils from '../../utils/OwnerUtils';
 import type BotClient from '../../core/BotClient';
 import type { Command } from '../../types';
 
@@ -263,10 +264,7 @@ const modelCommand: Command = {
 
         collector.on('collect', async (i: ButtonInteraction | StringSelectMenuInteraction) => {
             try {
-                const isOwner = Boolean(
-                    process.env.OWNER_ID &&
-                    process.env.OWNER_ID.split(',').map((id: string) => id.trim()).includes(i.user.id)
-                );
+                const isOwner = OwnerUtils.isOwner(i.user.id);
 
                 if (i.user.id !== interaction.user.id && !isOwner) {
                     await i.reply({
@@ -280,12 +278,10 @@ const modelCommand: Command = {
                 if (i.isStringSelectMenu() && i.customId === 'model_select_menu') {
                     const selectedModel = i.values[0];
 
-                    // Permission check: bot owner always bypasses server admin checks
-                    if (isGlobal && guildId) {
-                        const isAdmin = i.memberPermissions?.has(PermissionFlagsBits.Administrator);
-                        if (!isOwner && !isAdmin) {
+                    if (isGlobal) {
+                        if (!isOwner) {
                             await i.reply({
-                                content: `${Emojis.Warning} 只有伺服器管理員或機器人擁有者才能設定全域預設模型。`,
+                                content: `${Emojis.Warning} 只有機器人擁有者才能設定全域預設模型。`,
                                 flags: MessageFlags.Ephemeral
                             });
                             return;
@@ -326,10 +322,9 @@ const modelCommand: Command = {
                         return;
                     }
 
-                    const isAdmin = i.memberPermissions?.has(PermissionFlagsBits.Administrator);
-                    if (!isOwner && !isAdmin) {
+                    if (!isOwner) {
                         await i.reply({
-                            content: `${Emojis.Warning} 只有伺服器管理員或機器人擁有者才能切換至全域預設範圍。`,
+                            content: `${Emojis.Warning} 只有機器人擁有者才能切換至全域預設範圍。`,
                             flags: MessageFlags.Ephemeral
                         });
                         return;

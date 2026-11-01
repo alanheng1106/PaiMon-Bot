@@ -38,10 +38,28 @@ describe('CodeRunnerTool (Sandboxed Compiler & Execution)', () => {
     });
 
     it('rejects empty or whitespace-only code with friendly error', async () => {
-        const tool = new CodeRunnerTool();
+        const tool = new CodeRunnerTool({ primaryEndpoint: 'https://piston.example.com/api/v2/execute' });
         const result = await tool.execute({ language: 'python', code: '   ' });
 
         assert.ok(result.includes('不能為空'));
+    });
+
+    it('returns friendly error when primary endpoint is unconfigured', async () => {
+        const originalEnv = process.env.CODE_RUNNER_API_URL;
+        const originalPiston = process.env.PISTON_API_URL;
+        delete process.env.CODE_RUNNER_API_URL;
+        delete process.env.PISTON_API_URL;
+
+        try {
+            const tool = new CodeRunnerTool();
+            const result = await tool.execute({ language: 'python', code: 'print("hello")' });
+
+            assert.ok(result.includes('【沙盒未配置】'));
+            assert.ok(result.includes('CODE_RUNNER_API_URL'));
+        } finally {
+            process.env.CODE_RUNNER_API_URL = originalEnv;
+            process.env.PISTON_API_URL = originalPiston;
+        }
     });
 
     it('formats successful execution result cleanly', async () => {
@@ -65,10 +83,10 @@ describe('CodeRunnerTool (Sandboxed Compiler & Execution)', () => {
         };
 
         try {
-            const tool = new CodeRunnerTool({ primaryEndpoint: 'http://100.127.135.112:2000/api/v2/execute' });
+            const tool = new CodeRunnerTool({ primaryEndpoint: 'https://piston.example.com/api/v2/execute' });
             const output = await tool.execute({ language: 'python', code: 'print(42)' });
 
-            assert.ok(output.includes('100.127.135.112'));
+            assert.ok(output.includes('piston.example.com'));
             assert.ok(output.includes('42'));
             assert.ok(output.includes('Exit 0'));
         } finally {
@@ -94,7 +112,7 @@ describe('CodeRunnerTool (Sandboxed Compiler & Execution)', () => {
         });
 
         try {
-            const tool = new CodeRunnerTool();
+            const tool = new CodeRunnerTool({ primaryEndpoint: 'https://piston.example.com/api/v2/execute' });
             const output = await tool.execute({ language: 'c', code: 'foo bar;' });
 
             assert.ok(output.includes('編譯失敗'));
@@ -109,7 +127,7 @@ describe('CodeRunnerTool (Sandboxed Compiler & Execution)', () => {
         const originalFetch = globalThis.fetch;
         globalThis.fetch = async (url) => {
             calledUrls.push(url);
-            if (url.includes('100.127.135.112')) {
+            if (url.includes('primary-piston.internal')) {
                 throw new Error('Connection refused (host offline)');
             }
             return {
@@ -128,14 +146,14 @@ describe('CodeRunnerTool (Sandboxed Compiler & Execution)', () => {
 
         try {
             const tool = new CodeRunnerTool({
-                primaryEndpoint: 'http://100.127.135.112:2000/api/v2/execute',
+                primaryEndpoint: 'https://primary-piston.internal/api/v2/execute',
                 fallbackEndpoint: 'https://emkc.org/api/v2/piston/execute'
             });
 
             const output = await tool.execute({ language: 'asm', code: 'section .text' });
 
             assert.equal(calledUrls.length, 2);
-            assert.ok(calledUrls[0].includes('100.127.135.112'));
+            assert.ok(calledUrls[0].includes('primary-piston.internal'));
             assert.ok(calledUrls[1].includes('emkc.org'));
             assert.ok(output.includes('公共備援節點'));
             assert.ok(output.includes('Assembly Success'));

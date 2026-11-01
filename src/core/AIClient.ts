@@ -184,7 +184,6 @@ class AIClient {
         } = {}
     ): Promise<string | AIResponseWithAttachments> {
         const sessionHistory = this.#ensureSession(channelId);
-        const snapshotLength = sessionHistory.length;
 
         // Check if Thinking Mode should be activated for this interaction
         const isThinkingRequested =
@@ -280,7 +279,6 @@ class AIClient {
                 if (visionModel) {
                     activeProvider = visionModel.provider;
                     activeModelName = visionModel.model;
-                    activeEntry = visionModel;
                     console.log(
                         `[AIClient] Multimodal input detected: Auto-routed from text-only model to Vision model "${visionModel.name}" (${visionModel.model})`
                     );

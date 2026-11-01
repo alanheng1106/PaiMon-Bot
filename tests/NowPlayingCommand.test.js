@@ -559,10 +559,11 @@ describe('NowPlaying Music Command', () => {
 
                 await nowPlayingCommand.execute(mockInteraction, mockBot);
                 assert.ok(capturedIntervalFn);
+                const initialCalls = editReplyCallCount;
 
                 // Simulate interval tick while paused
                 await capturedIntervalFn();
-                assert.equal(editReplyCallCount, 0); // No editReply called when paused
+                assert.equal(editReplyCallCount, initialCalls); // No editReply called when paused
             } finally {
                 global.setInterval = originalSetInterval;
             }
@@ -663,13 +664,17 @@ describe('NowPlaying Music Command', () => {
                     sendError: async () => {}
                 };
 
+                let initialRenderDone = false;
                 const mockInteraction = {
                     inCachedGuild: () => true,
                     guild: { id: 'guild-123' },
                     deferReply: async () => {},
                     followUp: async () => {},
                     editReply: async () => {
-                        throw new Error('DiscordAPIError[10008]: Unknown Message');
+                        if (initialRenderDone) {
+                            throw new Error('DiscordAPIError[10008]: Unknown Message');
+                        }
+                        initialRenderDone = true;
                     }
                 };
 

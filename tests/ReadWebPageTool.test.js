@@ -143,4 +143,121 @@ describe('ReadWebPageTool (Web Page Text Extraction Strategy)', () => {
             globalThis.fetch = originalFetch;
         }
     });
+
+    describe('SSRF Hardening & IP Range Validation', () => {
+        const { isPrivateOrReservedIP, isAllowedPort, parseIPv4Mapped } = require('../src/core/tools/ReadWebPageTool');
+
+        it('correctly classifies all private, loopback, CGNAT and cloud metadata IPv4 ranges', () => {
+            assert.equal(isPrivateOrReservedIP('0.0.0.0'), true);
+            assert.equal(isPrivateOrReservedIP('127.0.0.1'), true);
+            assert.equal(isPrivateOrReservedIP('127.255.255.255'), true);
+            assert.equal(isPrivateOrReservedIP('10.0.0.1'), true);
+            assert.equal(isPrivateOrReservedIP('10.255.255.255'), true);
+            assert.equal(isPrivateOrReservedIP('172.16.0.1'), true);
+            assert.equal(isPrivateOrReservedIP('172.31.255.255'), true);
+            assert.equal(isPrivateOrReservedIP('172.32.0.1'), false);
+            assert.equal(isPrivateOrReservedIP('192.168.1.1'), true);
+            assert.equal(isPrivateOrReservedIP('169.254.169.254'), true);
+            assert.equal(isPrivateOrReservedIP('100.64.0.1'), true);
+            assert.equal(isPrivateOrReservedIP('100.127.135.112'), true);
+            assert.equal(isPrivateOrReservedIP('100.128.0.1'), false);
+            assert.equal(isPrivateOrReservedIP('8.8.8.8'), false);
+            assert.equal(isPrivateOrReservedIP('1.1.1.1'), false);
+        });
+
+        it('correctly classifies all IPv6 loopback, ULA, link-local and mapped ranges', () => {
+            assert.equal(isPrivateOrReservedIP('::1'), true);
+            assert.equal(isPrivateOrReservedIP('::'), true);
+            assert.equal(isPrivateOrReservedIP('fc00::1'), true);
+            assert.equal(isPrivateOrReservedIP('fd12:3456::1'), true);
+            assert.equal(isPrivateOrReservedIP('fe80::1'), true);
+            assert.equal(isPrivateOrReservedIP('::ffff:127.0.0.1'), true);
+            assert.equal(isPrivateOrReservedIP('::ffff:7f00:1'), true);
+            assert.equal(isPrivateOrReservedIP('::ffff:10.0.0.1'), true);
+            assert.equal(isPrivateOrReservedIP('::ffff:8.8.8.8'), false);
+            assert.equal(isPrivateOrReservedIP('2606:4700::'), false);
+        });
+
+        it('enforces Plan A Web port restrictions (80, 443, 8080, 8443)', () => {
+            assert.equal(isAllowedPort(new URL('http://example.com')), true);
+            assert.equal(isAllowedPort(new URL('https://example.com')), true);
+            assert.equal(isAllowedPort(new URL('http://example.com:80')), true);
+            assert.equal(isAllowedPort(new URL('https://example.com:443')), true);
+            assert.equal(isAllowedPort(new URL('http://example.com:8080')), true);
+            assert.equal(isAllowedPort(new URL('https://example.com:8443')), true);
+            assert.equal(isAllowedPort(new URL('http://example.com:22')), false);
+            assert.equal(isAllowedPort(new URL('http://example.com:25')), false);
+            assert.equal(isAllowedPort(new URL('http://example.com:2000')), false);
+            assert.equal(isAllowedPort(new URL('http://example.com:6379')), false);
+        });
+
+        it('blocks 302 redirect leading to private 127.0.0.1', async () => {
+            const tool = new ReadWebPageTool();
+            const originalFetch = globalThis.fetch;
+
+            globalThis.fetch = async (url) => {
+                if (String(url).includes('public-site.com')) {
+                    return {
+                        status: 302,
+                        headers: new Headers({
+                            location: 'http://127.0.0.1:8080/secret'
+                        })
+                    };
+                }
+                return { status: 200, ok: true, text: async () => 'secret data' };
+            };
+
+            try {
+                const result = await tool.execute({ url: 'https://public-site.com/redirect' });
+                assert.ok(result.includes('安全限制'));
+                assert.ok(!result.includes('secret data'));
+            } finally {
+                globalThis.fetch = originalFetch;
+            }
+        });
+
+        it('blocks open redirect chains exceeding 5 hops', async () => {
+            const tool = new ReadWebPageTool();
+            const originalFetch = globalThis.fetch;
+            let hop = 0;
+
+            globalThis.fetch = async () => {
+                hop++;
+                return {
+                    status: 302,
+                    headers: new Headers({
+                        location: `https://example.com/hop-${hop}`
+                    })
+                };
+            };
+
+            try {
+                const result = await tool.execute({ url: 'https://example.com/loop' });
+                assert.ok(result.includes('超過最大重定向次數'));
+            } finally {
+                globalThis.fetch = originalFetch;
+            }
+        });
+
+        it('blocks redirect attempting protocol smuggling to file:// or ftp://', async () => {
+            const tool = new ReadWebPageTool();
+            const originalFetch = globalThis.fetch;
+
+            globalThis.fetch = async () => {
+                return {
+                    status: 302,
+                    headers: new Headers({
+                        location: 'file:///etc/passwd'
+                    })
+                };
+            };
+
+            try {
+                const result = await tool.execute({ url: 'https://example.com/smuggle' });
+                assert.ok(result.includes('安全限制') || result.includes('僅支援 HTTP 與 HTTPS'));
+            } finally {
+                globalThis.fetch = originalFetch;
+            }
+        });
+    });
 });

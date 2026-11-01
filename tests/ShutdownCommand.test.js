@@ -93,4 +93,24 @@ describe('Shutdown Owner Command', () => {
         await shutdownCommand.execute(mockInteraction, mockBot);
         assert.equal(exitCode, 0, 'process.exit(0) must be called in finally');
     });
+
+    it('supports multiple comma-separated owner IDs in OWNER_ID environment variable', async () => {
+        process.env.OWNER_ID = 'owner-primary, owner-secondary';
+        let shutdownCalled = false;
+        process.exit = () => {};
+
+        const mockInteraction = {
+            user: { id: 'owner-secondary', tag: 'Secondary#0001' }
+        };
+
+        const mockBot = {
+            sendSuccess: async () => {},
+            shutdown: async () => {
+                shutdownCalled = true;
+            }
+        };
+
+        await shutdownCommand.execute(mockInteraction, mockBot);
+        assert.equal(shutdownCalled, true, 'Secondary owner in comma-separated list must be authorized');
+    });
 });

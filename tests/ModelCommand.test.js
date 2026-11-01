@@ -333,5 +333,109 @@ describe('Model General Command (All-in-One Interactive Dashboard)', () => {
                 process.env.OWNER_ID = originalOwner;
             }
         });
+
+        it('rejects non-owner server admin from toggling to global scope via model_btn_scope', async () => {
+            const originalOwner = process.env.OWNER_ID;
+            process.env.OWNER_ID = 'real-bot-owner';
+
+            try {
+                const bot = createMockBot();
+                let collectorHandler = null;
+                const mockInteraction = {
+                    guildId: 'guild-123',
+                    user: { id: 'guild-admin' },
+                    options: { getString: () => null },
+                    reply: async () => {},
+                    fetchReply: async () => ({
+                        createMessageComponentCollector: () => ({
+                            on: (event, handler) => {
+                                if (event === 'collect') collectorHandler = handler;
+                            }
+                        })
+                    })
+                };
+
+                await modelCommand.execute(mockInteraction, bot);
+
+                let rejectionContent = '';
+                const mockBtnInteraction = {
+                    user: { id: 'guild-admin' },
+                    customId: 'model_btn_scope',
+                    isButton: () => true,
+                    isStringSelectMenu: () => false,
+                    memberPermissions: {
+                        has: (perm) => true // Administrator = true
+                    },
+                    reply: async (payload) => {
+                        rejectionContent = payload.content;
+                    },
+                    update: async () => {}
+                };
+
+                await collectorHandler(mockBtnInteraction);
+                assert.ok(
+                    rejectionContent.includes('只有機器人擁有者才能切換至全域預設範圍'),
+                    'Server admin must be rejected from toggling to global scope'
+                );
+            } finally {
+                process.env.OWNER_ID = originalOwner;
+            }
+        });
+
+        it('rejects non-owner server admin from switching global model in model_select_menu', async () => {
+            const originalOwner = process.env.OWNER_ID;
+            process.env.OWNER_ID = 'real-bot-owner';
+
+            try {
+                const bot = createMockBot();
+                let switched = false;
+                bot.ai.switchModel = () => {
+                    switched = true;
+                    return true;
+                };
+
+                let collectorHandler = null;
+                const mockInteraction = {
+                    guildId: null, // DM / Global context
+                    user: { id: 'some-user' },
+                    options: { getString: () => null },
+                    reply: async () => {},
+                    fetchReply: async () => ({
+                        createMessageComponentCollector: () => ({
+                            on: (event, handler) => {
+                                if (event === 'collect') collectorHandler = handler;
+                            }
+                        })
+                    })
+                };
+
+                await modelCommand.execute(mockInteraction, bot);
+
+                let rejectionContent = '';
+                const mockSelectInteraction = {
+                    user: { id: 'some-user' },
+                    customId: 'model_select_menu',
+                    values: ['vtc-gpt'],
+                    isButton: () => false,
+                    isStringSelectMenu: () => true,
+                    memberPermissions: {
+                        has: () => true
+                    },
+                    reply: async (payload) => {
+                        rejectionContent = payload.content;
+                    },
+                    update: async () => {}
+                };
+
+                await collectorHandler(mockSelectInteraction);
+                assert.equal(switched, false, 'Non-owner must NOT switch global model');
+                assert.ok(
+                    rejectionContent.includes('只有機器人擁有者才能設定全域預設模型'),
+                    'Non-owner must be rejected with global owner notice'
+                );
+            } finally {
+                process.env.OWNER_ID = originalOwner;
+            }
+        });
     });
 });

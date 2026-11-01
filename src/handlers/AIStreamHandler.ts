@@ -666,38 +666,76 @@ class AIStreamHandler extends BaseMessageHandler {
                 else filename = `script_${fileIndex}.${ext}`;
             }
 
-            filename = filename.replace(/[/\\?%*:|"<>]/g, '_');
+            // 5. Sanitize filename: strip path traversal, null bytes, control characters, Windows reserved names
+            let cleanFilename = filename
+                .replace(/[\0\r\n\t]/g, '')
+                .replace(/[/\\?%*:|"<>]/g, '_')
+                .replace(/^\.+/, '') // remove leading dots (hidden files or ../)
+                .trim();
 
-            // Check if existing attachment matches this code or filename
-            const existing = attachments.find(
-                (att) =>
-                    att.filename.toLowerCase() === filename.toLowerCase() ||
-                    (typeof att.content === 'string' && att.content.trim() === code)
-            );
-
-            if (existing) {
-                filename = existing.filename;
-            } else {
-                let uniqueFilename = filename;
-                let counter = 2;
-                while (attachments.some((att) => att.filename.toLowerCase() === uniqueFilename.toLowerCase())) {
-                    const dotIndex = filename.lastIndexOf('.');
-                    if (dotIndex !== -1) {
-                        uniqueFilename = `${filename.slice(0, dotIndex)}_${counter}${filename.slice(dotIndex)}`;
-                    } else {
-                        uniqueFilename = `${filename}_${counter}`;
-                    }
-                    counter++;
-                }
-                filename = uniqueFilename;
-                attachments.push({
-                    filename,
-                    content: code
-                });
-                fileIndex++;
+            const baseWithoutExt = cleanFilename.split('.')[0]?.toUpperCase() || '';
+            if (/^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/.test(baseWithoutExt)) {
+                cleanFilename = `file_${cleanFilename}`;
             }
 
-            return `\n*(📄 完整程式碼已打包為檔案 \`${filename}\`，請於下方附件直接下載使用)*\n`;
+            const dotIdx = cleanFilename.lastIndexOf('.');
+            if (dotIdx !== -1) {
+                const b = cleanFilename.slice(0, dotIdx).slice(0, 80);
+                const e = cleanFilename.slice(dotIdx).slice(0, 20);
+                cleanFilename = `${b}${e}`;
+            } else {
+                cleanFilename = cleanFilename.slice(0, 80);
+            }
+
+            if (!cleanFilename || cleanFilename === '.') {
+                cleanFilename = `script_${fileIndex}.txt`;
+            }
+
+            // 6. Deduplication check: ONLY deduplicate if content is exactly identical
+            const trimmedCode = code.trim();
+            const exactDuplicate = attachments.find(
+                (att) => typeof att.content === 'string' && att.content.trim() === trimmedCode
+            );
+
+            if (exactDuplicate) {
+                return `\n*(📄 完整程式碼已打包為檔案 \`${exactDuplicate.filename}\`，請於下方附件直接下載使用)*\n`;
+            }
+
+            // 7. Discord 10-attachment limit check (Plan 1):
+            // If already reached Discord's 10-attachment cap, do not package further; keep inline
+            const MAX_ATTACHMENTS = 10;
+            if (attachments.length >= MAX_ATTACHMENTS) {
+                return `\n*(💡 附件已達 Discord 上限 10 個，此段代碼保留於訊息中)*\n${match}`;
+            }
+
+            // 8. Collision-free unique filename generation
+            const isTaken = (name: string) =>
+                attachments.some((att) => att.filename.toLowerCase() === name.toLowerCase());
+
+            let uniqueFilename = cleanFilename;
+            if (isTaken(uniqueFilename)) {
+                const dot = cleanFilename.lastIndexOf('.');
+                const b = dot !== -1 ? cleanFilename.slice(0, dot) : cleanFilename;
+                const e = dot !== -1 ? cleanFilename.slice(dot) : '';
+
+                const suffixMatch = b.match(/^(.*)_(\d+)$/);
+                const rootName = suffixMatch ? suffixMatch[1] : b;
+                let counter = suffixMatch ? parseInt(suffixMatch[2], 10) + 1 : 2;
+
+                uniqueFilename = `${rootName}_${counter}${e}`;
+                while (isTaken(uniqueFilename)) {
+                    counter++;
+                    uniqueFilename = `${rootName}_${counter}${e}`;
+                }
+            }
+
+            attachments.push({
+                filename: uniqueFilename,
+                content: code
+            });
+            fileIndex++;
+
+            return `\n*(📄 完整程式碼已打包為檔案 \`${uniqueFilename}\`，請於下方附件直接下載使用)*\n`;
         });
 
         let finalCleaned = replacedText.trim();

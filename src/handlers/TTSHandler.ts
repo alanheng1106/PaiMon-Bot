@@ -73,11 +73,19 @@ class TTSHandler extends BaseMessageHandler {
 
             // Race against a 5-second timeout — Google TTS is an unofficial API that can hang
             const TTS_TIMEOUT_MS = 5000;
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('TTS search timed out after 5s')), TTS_TIMEOUT_MS)
-            );
+            let timeoutId: NodeJS.Timeout | undefined;
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                timeoutId = setTimeout(() => reject(new Error('TTS search timed out after 5s')), TTS_TIMEOUT_MS);
+            });
 
-            const { tracks }: any = await Promise.race([bot.music.search(url), timeoutPromise]);
+            let searchResult: any;
+            try {
+                searchResult = await Promise.race([bot.music.search(url), timeoutPromise]);
+            } finally {
+                if (timeoutId) clearTimeout(timeoutId);
+            }
+
+            const tracks = searchResult?.tracks;
             if (tracks && tracks.length > 0) {
                 const track = tracks[0];
                 track.info.title = `TTS: ${textToSpeak}`;

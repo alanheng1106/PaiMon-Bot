@@ -76,17 +76,100 @@ describe('AIStreamHandler (Streaming AI Pipeline Handler)', () => {
 
     it('deduplicates when AI already called create_file tool and collapses inline code block', () => {
         const handler = new AIStreamHandler();
-        const code = `\`\`\`javascript\n// bot.js\nconst { Client } = require('discord.js');\nconst client = new Client();\n${Array.from({ length: 20 }, (_, i) => `console.log(${i});`).join('\n')}\n\`\`\``;
+        const innerCode = `// bot.js\nconst { Client } = require('discord.js');\nconst client = new Client();\n${Array.from({ length: 20 }, (_, i) => `console.log(${i});`).join('\n')}`;
+        const code = `\`\`\`javascript\n${innerCode}\n\`\`\``;
         const replyText = `代碼如下：\n${code}`;
-        const existingAttachments = [{ filename: 'bot.js', content: 'const { Client } = require("discord.js");' }];
+        const existingAttachments = [{ filename: 'bot.js', content: innerCode }];
 
         const result = handler.processCodeAttachments('幫我寫個機器人', replyText, existingAttachments);
 
-        // Attachment count should not double
+        // Attachment count should not double when content is identical
         assert.equal(result.attachments.length, 1);
         assert.equal(result.attachments[0].filename, 'bot.js');
         // The inline code block is still collapsed cleanly
         assert.ok(result.replyText.includes('*(📄 完整程式碼已打包為檔案 `bot.js`，請於下方附件直接下載使用)*'));
+    });
+
+    it('packages two different code blocks with same inferred language into unique attachments without losing code', () => {
+        const handler = new AIStreamHandler();
+        const code1 = `\`\`\`python\n# main.py\nimport socket\n${Array.from({ length: 20 }, (_, i) => `def server_fn_${i}(): pass`).join('\n')}\n\`\`\``;
+        const code2 = `\`\`\`python\n# main.py\nimport socket\n${Array.from({ length: 20 }, (_, i) => `def client_fn_${i}(): pass`).join('\n')}\n\`\`\``;
+        const replyText = `伺服器端：\n${code1}\n\n客戶端：\n${code2}`;
+
+        const result = handler.processCodeAttachments('幫我寫個 socket 通訊', replyText);
+
+        assert.equal(result.attachments.length, 2, 'Must create 2 attachments for 2 different code blocks');
+        assert.equal(result.attachments[0].filename, 'main.py');
+        assert.equal(result.attachments[1].filename, 'main_2.py');
+        assert.ok(result.attachments[0].content.includes('server_fn_0'));
+        assert.ok(result.attachments[1].content.includes('client_fn_0'));
+
+        // Notices must point to respective filenames
+        assert.ok(result.replyText.includes('*(📄 完整程式碼已打包為檔案 `main.py`，請於下方附件直接下載使用)*'));
+        assert.ok(result.replyText.includes('*(📄 完整程式碼已打包為檔案 `main_2.py`，請於下方附件直接下載使用)*'));
+    });
+
+    it('deduplicates two identical code blocks into a single attachment pointing to the same file', () => {
+        const handler = new AIStreamHandler();
+        const sharedCode = `\`\`\`python\nimport sys\n${Array.from({ length: 20 }, (_, i) => `print("step ${i}")`).join('\n')}\n\`\`\``;
+        const replyText = `第一處參考：\n${sharedCode}\n\n第二處相同參考：\n${sharedCode}`;
+
+        const result = handler.processCodeAttachments('測試重複代碼', replyText);
+
+        assert.equal(result.attachments.length, 1, 'Identical code blocks must deduplicate into 1 attachment');
+        assert.equal(result.attachments[0].filename, 'main.py');
+        // Both occurrences should reference main.py
+        const matches = result.replyText.match(/`main\.py`/g);
+        assert.equal(matches?.length, 2);
+    });
+
+    it('resolves secondary naming collisions without duplicate numbers (main_2.py -> main_3.py)', () => {
+        const handler = new AIStreamHandler();
+        const existingAttachments = [
+            { filename: 'main.py', content: 'print("main")' },
+            { filename: 'main_2.py', content: 'print("main_2")' }
+        ];
+
+        const newCode = `\`\`\`python\n# main_2.py\n${Array.from({ length: 20 }, (_, i) => `def new_step_${i}(): pass`).join('\n')}\n\`\`\``;
+        const replyText = `更新後代碼：\n${newCode}`;
+
+        const result = handler.processCodeAttachments('改寫 main_2.py', replyText, existingAttachments);
+
+        assert.equal(result.attachments.length, 3);
+        assert.equal(result.attachments[2].filename, 'main_3.py', 'Must increment to main_3.py without main_2_2 nesting');
+        assert.ok(result.replyText.includes('*(📄 完整程式碼已打包為檔案 `main_3.py`，請於下方附件直接下載使用)*'));
+    });
+
+    it('sanitizes path traversal and Windows reserved filenames securely', () => {
+        const handler = new AIStreamHandler();
+        const traversalCode = `\`\`\`python\n# ../../../etc/passwd.py\n${Array.from({ length: 20 }, (_, i) => `val_${i} = ${i}`).join('\n')}\n\`\`\``;
+        const winReservedCode = `\`\`\`python\n# con.py\n${Array.from({ length: 20 }, (_, i) => `val_${i} = ${i}`).join('\n')}\n\`\`\``;
+        const replyText = `${traversalCode}\n\n${winReservedCode}`;
+
+        const result = handler.processCodeAttachments('寫代碼', replyText);
+
+        assert.equal(result.attachments.length, 2);
+        // Traversal sanitized without leading dots or slashes
+        assert.ok(!result.attachments[0].filename.startsWith('.'));
+        assert.ok(!result.attachments[0].filename.includes('/'));
+        // Windows reserved name CON prefixed
+        assert.equal(result.attachments[1].filename, 'file_con.py');
+    });
+
+    it('keeps extra code blocks inline when Discord 10-attachment limit is reached (Plan 1)', () => {
+        const handler = new AIStreamHandler();
+        // Generate 11 long code blocks
+        const blocks = Array.from({ length: 11 }, (_, idx) => {
+            return `\`\`\`python\n# script_${idx + 1}.py\n${Array.from({ length: 20 }, (_, i) => `x_${idx}_${i} = 1`).join('\n')}\n\`\`\``;
+        });
+        const replyText = blocks.join('\n\n');
+
+        const result = handler.processCodeAttachments('生成11個檔案', replyText);
+
+        assert.equal(result.attachments.length, 10, 'Must cap attachments at 10 to satisfy Discord limit');
+        // The 11th block is retained inline with notice
+        assert.ok(result.replyText.includes('附件已達 Discord 上限 10 個，此段代碼保留於訊息中'));
+        assert.ok(result.replyText.includes('x_10_0 = 1'), '11th code content must be preserved inline in text');
     });
 
     it('packages code into AttachmentBuilder files during handle() execution', async () => {

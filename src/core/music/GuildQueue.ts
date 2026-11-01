@@ -294,6 +294,19 @@ class GuildQueue {
         this.#lastSongIsTTS = false;
         this.#isInterruptedForTTS = false;
     }
+
+    /**
+     * Completely destroy queue instance, clearing timers and resetting internal state.
+     */
+    destroy(): void {
+        this.clearNowPlayingTimer();
+        this.#songs = [];
+        this.#loopMode = 'none';
+        this.#isStopped = true;
+        this.#lastSongIsTTS = false;
+        this.#isInterruptedForTTS = false;
+        this.#nowPlayingFinalizer = null;
+    }
 }
 
 export default GuildQueue;

@@ -11,7 +11,7 @@ export interface CodeRunnerArgs {
 /**
  * CodeRunnerTool — Enables AI to compile and execute code safely in an isolated sandbox.
  * Supports Python, Java, C, C++, Rust, Assembly (NASM), Go, JavaScript, TypeScript, Bash, etc.
- * Connects to user's private Ubuntu Piston sandbox (100.127.135.112:2000) with automatic public fallback.
+ * Connects to configured Piston sandbox with automatic public fallback.
  * Follows Strategy Pattern (BaseTool) & Open-Closed Principle (OCP).
  */
 class CodeRunnerTool extends BaseTool {
@@ -25,12 +25,12 @@ class CodeRunnerTool extends BaseTool {
             options.primaryEndpoint ||
             process.env.CODE_RUNNER_API_URL ||
             process.env.PISTON_API_URL ||
-            'http://100.127.135.112:2000/api/v2/execute';
+            '';
         this.#fallbackEndpoint =
             options.fallbackEndpoint ||
             process.env.CODE_RUNNER_FALLBACK_URL ||
             'https://emkc.org/api/v2/piston/execute';
-        this.#timeoutMs = options.timeoutMs || 15000;
+        this.#timeoutMs = options.timeoutMs || 7000;
     }
 
     override get definition(): ToolDefinition {
@@ -118,6 +118,10 @@ class CodeRunnerTool extends BaseTool {
             return '執行失敗：程式碼內容不能為空。';
         }
 
+        if (!this.#primaryEndpoint) {
+            return '【沙盒未配置】未設定程式碼執行沙盒端點 (CODE_RUNNER_API_URL)。請於環境變數中設定 Piston API 端點。';
+        }
+
         const language = this.normalizeLanguage(rawLang);
 
         const payload = {
@@ -182,8 +186,14 @@ class CodeRunnerTool extends BaseTool {
         }
 
         const sections: string[] = [];
-        const isPrivate = endpoint.includes('100.127.135.112');
-        const nodeTag = isPrivate ? '私有 Ubuntu 節點 (100.127.135.112)' : '公共備援節點';
+        let hostDisplay: string;
+        try {
+            hostDisplay = new URL(endpoint).host;
+        } catch {
+            hostDisplay = endpoint || '自定義節點';
+        }
+        const isFallback = Boolean(this.#fallbackEndpoint && endpoint === this.#fallbackEndpoint);
+        const nodeTag = isFallback ? '公共備援節點' : `沙盒節點 (${hostDisplay})`;
         sections.push(`🖥️ 執行環境: ${language} ${version || ''} ｜ 節點: ${nodeTag}`);
 
         // 1. Compiler output (for C, C++, Java, NASM, Rust, etc.)
