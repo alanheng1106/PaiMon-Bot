@@ -1,5 +1,6 @@
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'fs';
 import path from 'path';
 import ILLMProvider from '../src/core/ai/ILLMProvider';
 import AIClient from '../src/core/AIClient';
@@ -78,6 +79,11 @@ describe('AI Memory Dual-Engine System Integration', () => {
         });
 
         reflector = new MemoryReflector(memoryStore, mockLLMProvider);
+    });
+
+    afterEach(() => {
+        if (memoryStore?._debounceTimer) clearTimeout(memoryStore._debounceTimer);
+        fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
     });
 
     it('injects existing user memories into system prompt when userId is provided', async () => {

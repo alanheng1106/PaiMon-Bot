@@ -96,25 +96,8 @@ export async function measureAIEngineLatency(bot?: BotClient): Promise<Subsystem
             }
         }
 
-        const baseURL =
-            process.env.WINDOWSED_AI_BASE_URL ||
-            process.env.VTC_AI_BASE_URL ||
-            process.env.CUSTOM_AI_BASE_URL ||
-            process.env.OPENAI_BASE_URL ||
-            process.env.FRIEND_AI_BASE_URL ||
-            (AIConfig as any)?.WindowsedAIBaseUrl ||
-            (AIConfig as any)?.CustomAIBaseUrl ||
-            'https://ai.windowsed.me/v1';
-
-        const apiKey =
-            process.env.WINDOWSED_AI_API_KEY ||
-            process.env.VTC_AI_API_KEY ||
-            process.env.CUSTOM_AI_API_KEY ||
-            process.env.OPENAI_API_KEY ||
-            process.env.FRIEND_AI_API_KEY ||
-            (AIConfig as any)?.WindowsedAIApiKey ||
-            (AIConfig as any)?.CustomAIApiKey ||
-            '';
+        const baseURL = AIConfig?.WindowsedAIBaseUrl || 'https://ai.windowsed.me/v1';
+        const apiKey = AIConfig?.WindowsedAIApiKey || '';
 
         const start = performance.now();
         const url = `${baseURL.replace(/\/+$/, '')}/models`;

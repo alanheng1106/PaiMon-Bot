@@ -48,7 +48,6 @@ describe('ServiceContainer & AppContainerBuilder (Dependency Injection)', () => 
         assert.ok(container.has('cooldowns'));
         assert.ok(container.has('linkFixer'));
         assert.ok(container.has('components'));
-        assert.ok(container.has('reactionRouter'));
 
         // Verify that factory methods resolve successfully without ReferenceError
         assert.ok(container.get('ai'));

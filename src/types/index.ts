@@ -13,7 +13,6 @@ import type GuildSettings from '../core/GuildSettings';
 import type CooldownManager from '../core/CooldownManager';
 import type LinkFixer from '../core/LinkFixer';
 import type ComponentRouter from '../core/components/ComponentRouter';
-import type ReactionRouter from '../core/reactions/ReactionRouter';
 
 import type ModelRegistry from '../core/ai/ModelRegistry';
 import type ILLMProvider from '../core/ai/ILLMProvider';
@@ -30,11 +29,9 @@ export interface ServiceMap {
     cooldowns: CooldownManager;
     linkFixer: LinkFixer;
     components: ComponentRouter;
-    reactionRouter: ReactionRouter;
     modelRegistry: ModelRegistry;
     llmProvider: ILLMProvider;
     gatewayProvider: OpenAICompatibleProvider;
-    friendProvider?: OpenAICompatibleProvider;
     imageService: ImageSynthesisService;
     userMemoryStore: UserMemoryStore;
     memoryReflector: MemoryReflector;

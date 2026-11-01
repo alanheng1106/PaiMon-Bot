@@ -33,38 +33,11 @@ class OpenAICompatibleProvider extends ILLMProvider {
             const rawBaseURL =
                 options.baseURL !== undefined
                     ? options.baseURL
-                    : process.env.WINDOWSED_AI_BASE_URL ||
-                      process.env.VTC_AI_BASE_URL ||
-                      process.env.CUSTOM_AI_BASE_URL ||
-                      process.env.OPENAI_BASE_URL ||
-                      process.env.FRIEND_AI_BASE_URL ||
-                      (AIConfig as any)?.WindowsedAIBaseUrl ||
-                      (AIConfig as any)?.CustomAIBaseUrl ||
-                      (AIConfig as any)?.FriendAIBaseUrl ||
-                      '';
+                    : AIConfig?.WindowsedAIBaseUrl || '';
 
-            const rawApiKey =
-                options.apiKey ||
-                process.env.WINDOWSED_AI_API_KEY ||
-                process.env.VTC_AI_API_KEY ||
-                process.env.CUSTOM_AI_API_KEY ||
-                process.env.OPENAI_API_KEY ||
-                process.env.FRIEND_AI_API_KEY ||
-                (AIConfig as any)?.WindowsedAIApiKey ||
-                (AIConfig as any)?.CustomAIApiKey ||
-                (AIConfig as any)?.FriendAIApiKey ||
-                'sk-api-token';
+            const rawApiKey = options.apiKey || AIConfig?.WindowsedAIApiKey || 'sk-api-token';
 
-            this.#name =
-                options.name ||
-                process.env.WINDOWSED_AI_NAME ||
-                process.env.VTC_AI_NAME ||
-                process.env.CUSTOM_AI_NAME ||
-                process.env.FRIEND_AI_NAME ||
-                (AIConfig as any)?.WindowsedAIName ||
-                (AIConfig as any)?.CustomAIName ||
-                (AIConfig as any)?.FriendAIName ||
-                'VTC GenAI';
+            this.#name = options.name || AIConfig?.WindowsedAIName || 'VTC GenAI';
 
             if (rawBaseURL) {
                 // Ensure baseURL doesn't have trailing slash for consistency

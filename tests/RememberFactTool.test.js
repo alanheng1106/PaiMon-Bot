@@ -1,5 +1,6 @@
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'fs';
 import path from 'path';
 import { UserMemoryStore } from '../src/core/ai/UserMemoryStore';
 import RememberFactTool from '../src/core/tools/RememberFactTool';
@@ -18,6 +19,11 @@ describe('RememberFactTool & ForgetFactTool', () => {
         store.data = {};
         rememberTool = new RememberFactTool(store);
         forgetTool = new ForgetFactTool(store);
+    });
+
+    afterEach(() => {
+        if (store?._debounceTimer) clearTimeout(store._debounceTimer);
+        fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
     });
 
     it('has valid tool definitions for function calling', () => {

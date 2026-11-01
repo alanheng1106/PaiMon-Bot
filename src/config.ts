@@ -55,12 +55,6 @@ export const LinkFixer = {
 } as const;
 
 export const AI = {
-    DefaultHost:
-        process.env.WINDOWSED_AI_BASE_URL ||
-        process.env.VTC_AI_BASE_URL ||
-        process.env.CUSTOM_AI_BASE_URL ||
-        process.env.FRIEND_AI_BASE_URL ||
-        'https://ai.windowsed.me/v1',
     MaxChannels: 100, // Maximum concurrent conversation channels in LRU cache
     ChatTTL: 1000 * 60 * 60 * 2, // 2 hours — clear history after inactivity
     HistorySize: 30, // Multi-turn conversation context history depth
@@ -78,59 +72,43 @@ export const AI = {
     DefaultImageModel: process.env.VTC_IMAGE_MODEL || 'gpt-image-2',
     DefaultImageSize: '3840x2160', // 4K UHD resolution
     // Multi-Platform Gateway Settings (Windowsed / VTC GenAI, OpenAI, vLLM, LiteLLM)
-    CustomAIBaseUrl:
-        process.env.WINDOWSED_AI_BASE_URL ||
-        process.env.VTC_AI_BASE_URL ||
-        process.env.CUSTOM_AI_BASE_URL ||
-        process.env.OPENAI_BASE_URL ||
-        process.env.FRIEND_AI_BASE_URL ||
-        'https://ai.windowsed.me/v1',
-    CustomAIApiKey:
-        process.env.WINDOWSED_AI_API_KEY ||
-        process.env.VTC_AI_API_KEY ||
-        process.env.CUSTOM_AI_API_KEY ||
-        process.env.OPENAI_API_KEY ||
-        process.env.FRIEND_AI_API_KEY ||
-        '',
-    CustomAIModel:
-        process.env.WINDOWSED_AI_MODEL ||
-        process.env.VTC_AI_MODEL ||
-        process.env.CUSTOM_AI_MODEL ||
-        process.env.FRIEND_AI_MODEL ||
-        'deepseek-v4-pro-thinking',
-    CustomAIName:
-        process.env.WINDOWSED_AI_NAME ||
-        process.env.VTC_AI_NAME ||
-        process.env.CUSTOM_AI_NAME ||
-        process.env.FRIEND_AI_NAME ||
-        'VTC GenAI',
-    // Windowsed Gateway Aliases
-    WindowsedAIBaseUrl:
-        process.env.WINDOWSED_AI_BASE_URL ||
-        process.env.VTC_AI_BASE_URL ||
-        process.env.FRIEND_AI_BASE_URL ||
-        'https://ai.windowsed.me/v1',
-    WindowsedAIApiKey:
-        process.env.WINDOWSED_AI_API_KEY || process.env.VTC_AI_API_KEY || process.env.FRIEND_AI_API_KEY || '',
-    WindowsedAIModel:
-        process.env.WINDOWSED_AI_MODEL ||
-        process.env.VTC_AI_MODEL ||
-        process.env.FRIEND_AI_MODEL ||
-        'deepseek-v4-pro-thinking',
-    WindowsedAIName:
-        process.env.WINDOWSED_AI_NAME || process.env.VTC_AI_NAME || process.env.FRIEND_AI_NAME || 'VTC GenAI',
-    // Backward compatibility getters
-    get FriendAIBaseUrl() {
-        return this.WindowsedAIBaseUrl;
+    get WindowsedAIBaseUrl() {
+        return (
+            process.env.WINDOWSED_AI_BASE_URL ||
+            process.env.VTC_AI_BASE_URL ||
+            process.env.CUSTOM_AI_BASE_URL ||
+            process.env.OPENAI_BASE_URL ||
+            process.env.FRIEND_AI_BASE_URL ||
+            'https://ai.windowsed.me/v1'
+        );
     },
-    get FriendAIApiKey() {
-        return this.WindowsedAIApiKey;
+    get WindowsedAIApiKey() {
+        return (
+            process.env.WINDOWSED_AI_API_KEY ||
+            process.env.VTC_AI_API_KEY ||
+            process.env.CUSTOM_AI_API_KEY ||
+            process.env.OPENAI_API_KEY ||
+            process.env.FRIEND_AI_API_KEY ||
+            ''
+        );
     },
-    get FriendAIModel() {
-        return this.WindowsedAIModel;
+    get WindowsedAIModel() {
+        return (
+            process.env.WINDOWSED_AI_MODEL ||
+            process.env.VTC_AI_MODEL ||
+            process.env.CUSTOM_AI_MODEL ||
+            process.env.FRIEND_AI_MODEL ||
+            'deepseek-v4-pro-thinking'
+        );
     },
-    get FriendAIName() {
-        return this.WindowsedAIName;
+    get WindowsedAIName() {
+        return (
+            process.env.WINDOWSED_AI_NAME ||
+            process.env.VTC_AI_NAME ||
+            process.env.CUSTOM_AI_NAME ||
+            process.env.FRIEND_AI_NAME ||
+            'VTC GenAI'
+        );
     }
 };
 

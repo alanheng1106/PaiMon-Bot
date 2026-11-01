@@ -10,8 +10,7 @@
 import { LRUCache } from 'lru-cache';
 import { LinkFixer as LinkFixConfig } from '../config';
 import DomainRegistry, { DomainDefinition, ProviderDefinition } from './linkfixer/DomainRegistry';
-import LinkProviderRotator from './linkfixer/LinkProviderRotator';
-import BaseMetadataScraper, { ScrapedMetadata } from './scrapers/BaseMetadataScraper';
+import BaseMetadataScraper from './scrapers/BaseMetadataScraper';
 import DouyinMetadataScraper from './scrapers/DouyinMetadataScraper';
 import DefaultOGMetadataScraper from './scrapers/DefaultOGMetadataScraper';
 import DiscordSanitizer from '../utils/DiscordSanitizer';
@@ -46,7 +45,6 @@ export interface LinkFixResult {
 
 class LinkFixer {
     #domainRegistry: DomainRegistry;
-    #rotator: LinkProviderRotator;
     #scrapers: BaseMetadataScraper[] = [];
     #fixedMessages: LRUCache<string, FixedMessageMeta>;
 
@@ -62,11 +60,6 @@ class LinkFixer {
         } else {
             this.#domainRegistry = new DomainRegistry();
         }
-
-        this.#rotator = new LinkProviderRotator(
-            this.#domainRegistry,
-            (urlStr: string, replacements: any[]) => this.#applyReplacement(urlStr, replacements) || urlStr
-        );
 
         // Memory Leak Prevention: Use LRU Cache with TTL from config
         const maxCache = LinkFixConfig?.MaxCache || 2000;
@@ -126,17 +119,17 @@ class LinkFixer {
         return false;
     }
 
-    rotateLinkProvider(fixedUrl: string) {
-        return this.#rotator.rotateLinkProvider(fixedUrl);
-    }
-
     async process(content: string, options: LinkFixProcessOptions = {}): Promise<LinkFixResult> {
         const fixedLinks: string[] = [];
         const items: LinkFixItem[] = [];
-        const seen = new Set<string>();
         let replacedContent = content;
         let modified = false;
 
+        if (!content || typeof content !== 'string') {
+            return { fixedLinks, items, replacedContent, modified };
+        }
+
+        const seen = new Set<string>();
         const currentDomains = this.#domainRegistry.getAll();
 
         for (const domain of currentDomains) {
@@ -215,18 +208,7 @@ class LinkFixer {
         return { fixedLinks, items, replacedContent, modified };
     }
 
-    reverseParse(fixedUrl: string) {
-        return this.#rotator.reverseParse(fixedUrl);
-    }
-
-    getNextProvider(domainId: string, currentProviderId: string) {
-        return this.#rotator.getNextProvider(domainId, currentProviderId);
-    }
-
-    /**
-     * Fetch OpenGraph metadata from a fixed URL using Strategy Pattern dispatch.
-     */
-    async fetchOGMetadata(url: string): Promise<ScrapedMetadata | null> {
+    async fetchLinkMetadata(url: string) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 8000);
 

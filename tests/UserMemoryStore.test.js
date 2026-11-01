@@ -133,25 +133,4 @@ describe('UserMemoryStore', () => {
         assert.equal(resNormal.success, true);
         assert.equal(store.getMemories('user-1').length, 1);
     });
-
-    it('cleans legacy name/nickname memories across profiles', () => {
-        // Manually inject legacy memories
-        store.data['u-legacy'] = {
-            userId: 'u-legacy',
-            userName: 'duck_user',
-            memories: [
-                { id: '1', content: '稱呼為小明', category: 'profile', createdAt: 1, updatedAt: 1 },
-                { id: '2', content: '喜歡用 TypeScript 開發', category: 'preference', createdAt: 2, updatedAt: 2 },
-                { id: '3', content: '在伺服器叫大帥哥', category: 'profile', createdAt: 3, updatedAt: 3 }
-            ],
-            updatedAt: 3
-        };
-
-        const cleanedCount = store.cleanLegacyNameMemories();
-        assert.equal(cleanedCount, 2);
-
-        const remaining = store.getMemories('u-legacy');
-        assert.equal(remaining.length, 1);
-        assert.equal(remaining[0].content, '喜歡用 TypeScript 開發');
-    });
 });

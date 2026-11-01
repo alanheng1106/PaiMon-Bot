@@ -3,9 +3,6 @@ import BaseJsonFileStore from '../utils/BaseJsonFileStore';
 import { Guild as GuildConfig } from '../config';
 
 export interface LinkFixerSettings {
-    fixMode: 'webhook' | 'reply' | 'reply_suppress' | string;
-    deleteMsgEmoji: string;
-    rotateFixEmoji: string;
     disabledDomains: string[];
     domainProviders: Record<string, string>;
 }
@@ -42,9 +39,6 @@ class GuildSettings extends BaseJsonFileStore<Record<string, any>> {
      */
     getLinkFixerSettings(guildId: string): LinkFixerSettings {
         const defaultSettings: LinkFixerSettings = {
-            fixMode: 'webhook',
-            deleteMsgEmoji: '❌',
-            rotateFixEmoji: '🔄',
             disabledDomains: [],
             domainProviders: {}
         };

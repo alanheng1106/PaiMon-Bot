@@ -8,7 +8,7 @@ WORKDIR /usr/src/app
 RUN apt-get update && apt-get install -y fonts-noto && rm -rf /var/lib/apt/lists/*
 
 # 4. Copy only package files first (for layer caching)
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock* bun.lockb* ./
 
 # 5. Install dependencies
 RUN bun install --frozen-lockfile

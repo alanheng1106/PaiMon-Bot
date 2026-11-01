@@ -1,5 +1,6 @@
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'fs';
 import path from 'path';
 import { UserMemoryStore } from '../src/core/ai/UserMemoryStore';
 import MemoryReflector from '../src/core/ai/MemoryReflector';
@@ -15,6 +16,11 @@ describe('MemoryReflector', () => {
         store = new UserMemoryStore(TEST_DATA_DIR, TEST_FILE, 10, 100);
         store.data = {};
         reflector = new MemoryReflector(store);
+    });
+
+    afterEach(() => {
+        if (store?._debounceTimer) clearTimeout(store._debounceTimer);
+        fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
     });
 
     it('heuristically filters trivial messages', () => {

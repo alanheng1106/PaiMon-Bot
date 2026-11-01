@@ -209,27 +209,6 @@ export class UserMemoryStore extends BaseJsonFileStore<UserMemoryData> {
 
         return `【關於旅行者「${userDisplay}」的專屬長期記憶（派蒙的小本本）】\n${bulletPoints}\n（請在回答時自然結合以上已知記憶，避免重新詢問已知事實或偏好）`;
     }
-
-    /**
-     * Clean up legacy name/nickname facts from all profiles.
-     */
-    cleanLegacyNameMemories(): number {
-        let removedCount = 0;
-        const nameRegex =
-            /^(?:暱稱(?:是|為|叫)?|稱呼(?:為|是|叫)?|名字(?:是|叫|為)?|在伺服器(?:暱稱|叫|名為)?)\s*[:：]?\s*.+/i;
-        for (const profile of Object.values(this.data)) {
-            const initial = profile.memories.length;
-            profile.memories = profile.memories.filter((m) => !nameRegex.test(m.content));
-            if (profile.memories.length !== initial) {
-                removedCount += initial - profile.memories.length;
-                profile.updatedAt = Date.now();
-            }
-        }
-        if (removedCount > 0) {
-            this.save();
-        }
-        return removedCount;
-    }
 }
 
 export default UserMemoryStore;

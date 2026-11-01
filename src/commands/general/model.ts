@@ -20,8 +20,8 @@ import OwnerUtils from '../../utils/OwnerUtils';
 import type BotClient from '../../core/BotClient';
 import type { Command } from '../../types';
 
-import { getModelEmoji, getPlatformMeta } from '../../core/ai/AIErrorDiagnostic';
-export { getModelEmoji, getPlatformMeta };
+import { getModelEmoji, getPlatformMeta, cleanModelName } from '../../core/ai/AIErrorDiagnostic';
+export { getModelEmoji, getPlatformMeta, cleanModelName };
 
 export function getModelSelectEmoji(id: string): string {
     const lower = id.toLowerCase();
@@ -35,14 +35,6 @@ export function getModelSelectEmoji(id: string): string {
     if (lower.includes('minimax')) return '🌟';
     return '🤖';
 }
-
-export const cleanModelName = (name: string) =>
-    name
-        .replace(/\s*\(Ollama.*?\)/i, '')
-        .replace(/\s*\(VTC.*?\)/i, '')
-        .replace(/\s*\(MeowAI.*?\)/i, '')
-        .replace(/\s*\(開源.*?\)/i, '')
-        .trim();
 
 export const cleanModelDesc = (desc?: string) => {
     if (!desc) return '高效能運算節點';

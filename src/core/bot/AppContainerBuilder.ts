@@ -48,9 +48,6 @@ import MusicPauseButtonHandler from '../components/MusicPauseButtonHandler';
 import MusicSkipButtonHandler from '../components/MusicSkipButtonHandler';
 import MusicQueueButtonHandler from '../components/MusicQueueButtonHandler';
 import MusicVolumeButtonHandler from '../components/MusicVolumeButtonHandler';
-import ReactionRouter from '../reactions/ReactionRouter';
-import DeleteFixedMessageReactionHandler from '../reactions/DeleteFixedMessageReactionHandler';
-import RotateProviderReactionHandler from '../reactions/RotateProviderReactionHandler';
 
 import ImageSynthesisService from '../ai/ImageSynthesisService';
 import GenerateImageTool from '../tools/GenerateImageTool';
@@ -98,7 +95,6 @@ class AppContainerBuilder {
         container.register('gatewayProvider', () => new OpenAICompatibleProvider());
         // llmProvider alias for strategy compatibility
         container.register('llmProvider', (c: ServiceContainer) => c.get('gatewayProvider'));
-        container.register('friendProvider', (c: ServiceContainer) => c.get('gatewayProvider'));
 
         container.register('modelRegistry', (c: ServiceContainer) => {
             const registry = new ModelRegistry(c.get('settings'));
@@ -253,13 +249,6 @@ class AppContainerBuilder {
             router.register(new MusicQueueButtonHandler());
             router.register(new MusicVolumeButtonHandler());
             return router;
-        });
-        container.register('reactionRouter', (c: ServiceContainer) => {
-            const linkFixer = c.get('linkFixer');
-            return new ReactionRouter([
-                new DeleteFixedMessageReactionHandler(linkFixer),
-                new RotateProviderReactionHandler(linkFixer)
-            ]);
         });
 
         return container;
