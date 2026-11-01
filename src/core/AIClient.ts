@@ -200,10 +200,7 @@ class AIClient {
             }
         }
 
-        sessionHistory.push(userMessage);
-        this.#pruneHistory(channelId);
-
-        const requestMessages = [...sessionHistory];
+        const requestMessages = [...sessionHistory, userMessage];
 
         // Inject Long-Term User Memories into System Prompt if available (from PaiMon's Notebook)
         if (options.userId && this.#userMemoryStore && requestMessages.length > 0 && requestMessages[0]?.role === 'system') {
@@ -364,10 +361,6 @@ class AIClient {
                     const parsed = this.parseThinkingAndContent(currentContent);
                     const cleanAnswer = parsed.content || currentContent;
                     finalReplyText = DiscordSanitizer.sanitize(cleanAnswer);
-                    if (finalReplyText) {
-                        // Gemma 4 Best Practice: Never save thinking tokens or thought content into multi-turn session history
-                        sessionHistory.push({ role: 'assistant', content: finalReplyText });
-                    }
                     break;
                 }
             }
@@ -375,15 +368,18 @@ class AIClient {
             if (!finalReplyText) {
                 if (attachments.length > 0) {
                     finalReplyText = '已完成相關工具操作並生成檔案。';
-                    sessionHistory.push({ role: 'assistant', content: finalReplyText });
                 } else {
                     console.warn(
                         `[AIClient] Reached maximum tool execution limit (${maxIterations} iterations) without final text.`
                     );
                     finalReplyText = '已完成相關工具操作，但未能生成後續總結回覆，請稍後再試。';
-                    sessionHistory.push({ role: 'assistant', content: finalReplyText });
                 }
             }
+
+            // Commit user + assistant turn atomically without retaining raw base64 images in session RAM
+            delete userMessage.images;
+            sessionHistory.push(userMessage, { role: 'assistant', content: finalReplyText });
+            this.#pruneHistory(channelId);
 
             if (attachments.length > 0) {
                 return {
@@ -395,11 +391,6 @@ class AIClient {
             return finalReplyText;
         } catch (error: any) {
             console.error('[AIClient] Inference Error:', error.message);
-            // Concurrency-safe rollback: only remove the specific userMessage added in this turn
-            const userMsgIdx = sessionHistory.indexOf(userMessage);
-            if (userMsgIdx !== -1) {
-                sessionHistory.splice(userMsgIdx, 1);
-            }
             throw error;
         }
     }
@@ -550,10 +541,7 @@ class AIClient {
             if (args && typeof args === 'object') {
                 for (const key of Object.keys(args)) {
                     if (typeof args[key] === 'string') {
-                        args[key] = args[key]
-                            .replace(/<\/?[|｜]{1,2}DSML[|｜]{1,2}[^>]*>/gi, '')
-                            .replace(/<[|｜]{1,2}[^>]*[|｜]{1,2}>/gi, '')
-                            .trim();
+                        args[key] = DiscordSanitizer.sanitizeModelMarkup(args[key]);
                     }
                 }
             }
@@ -593,12 +581,16 @@ class AIClient {
         }
     }
 
-    async urlToBase64(url: string): Promise<string | null> {
+    async urlToBase64(url: string, maxBytes: number = 15 * 1024 * 1024): Promise<string | null> {
         try {
             const res = await fetch(url);
             if (!res.ok) return null;
-            const mime = res.headers.get('content-type') || 'image/jpeg';
-            return `data:${mime};base64,${Buffer.from(await res.arrayBuffer()).toString('base64')}`;
+            const cl = parseInt(res.headers?.get?.('content-length') || '', 10);
+            if (!isNaN(cl) && cl > maxBytes) return null;
+            const buf = await res.arrayBuffer();
+            if (buf.byteLength > maxBytes) return null;
+            const mime = res.headers?.get?.('content-type') || 'image/jpeg';
+            return `data:${mime};base64,${Buffer.from(buf).toString('base64')}`;
         } catch {
             return null;
         }

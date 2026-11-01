@@ -24,6 +24,11 @@ class CooldownManager {
 
         const timestamps = this.#cooldowns.get(commandName)!;
         const now = Date.now();
+
+        for (const [uid, exp] of timestamps) {
+            if (now >= exp) timestamps.delete(uid);
+        }
+
         const expireTime = timestamps.get(userId);
 
         if (expireTime && now < expireTime) {

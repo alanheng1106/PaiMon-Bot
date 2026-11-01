@@ -10,10 +10,17 @@ import {
     ButtonStyle,
     MessageFlags,
     Interaction,
+    ButtonInteraction,
+    GuildBasedChannel,
+    PermissionOverwriteManager,
     User,
     GuildMember
 } from 'discord.js';
 import { Colors, Emojis } from '../config';
+
+export type LockableGuildChannel = GuildBasedChannel & {
+    permissionOverwrites: PermissionOverwriteManager;
+};
 
 export interface ValidateTargetOptions {
     actionName?: string;
@@ -132,26 +139,105 @@ class ModerationHelper {
     ): string | null {
         const { actionName = '執行此操作' } = options;
 
-        if (user.id === interaction.user.id) {
+        if (interaction.user && user.id === interaction.user.id) {
             return '你不能對你自己執行此操作!';
         }
-        if (user.id === bot.user.id) {
+        if (bot?.user && user.id === bot.user.id) {
             return '我沒辦法對我自己執行此操作!';
         }
-        if (user.id === interaction.guild?.ownerId) {
+        if (interaction.guild?.ownerId && user.id === interaction.guild.ownerId) {
             return '你不能對伺服器擁有者執行此操作!';
         }
 
-        if (member && interaction.member) {
+        if (member && interaction.member?.roles?.highest && member.roles?.highest) {
             if (
                 interaction.member.roles.highest.position <= member.roles.highest.position &&
-                interaction.guild?.ownerId !== interaction.user.id
+                interaction.guild?.ownerId !== interaction.user?.id
             ) {
                 return `你的最高身分組不高於 **${user.tag}**, 無法${actionName}`;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Type guard for guild channels supporting permission overwrites (lock/unlock).
+     */
+    static isLockableChannel(channel: unknown): channel is LockableGuildChannel {
+        if (!channel || typeof channel !== 'object') return false;
+        const c = channel as {
+            isThread?: () => boolean;
+            permissionOverwrites?: unknown;
+            permissionsFor?: unknown;
+            name?: unknown;
+        };
+        try {
+            if (typeof c.isThread === 'function' && c.isThread()) {
+                return false;
+            }
+        } catch {
+            return false;
+        }
+        return (
+            typeof c.permissionOverwrites === 'object' &&
+            c.permissionOverwrites !== null &&
+            (typeof c.permissionsFor === 'function' || !('permissionsFor' in c))
+        );
+    }
+
+    /**
+     * Disables the clicked button on the source CV2 or legacy message card in-place (best-effort).
+     */
+    static async disableCardButton(
+        interaction: ButtonInteraction | any,
+        disabledLabel: string,
+        disabledEmoji?: string
+    ): Promise<void> {
+        try {
+            if (!interaction.message?.components?.length) return;
+
+            const updateRow = (row: any) => {
+                const rowJson = typeof row?.toJSON === 'function' ? row.toJSON() : row;
+                if (rowJson?.type !== 1 || !Array.isArray(rowJson.components)) return rowJson;
+                const newRow = new ActionRowBuilder<ButtonBuilder>();
+                for (const btn of rowJson.components) {
+                    const isTarget = btn.custom_id === interaction.customId;
+                    const newBtn = new ButtonBuilder()
+                        .setCustomId(btn.custom_id)
+                        .setLabel(isTarget ? disabledLabel : btn.label || '')
+                        .setStyle(isTarget ? ButtonStyle.Secondary : btn.style)
+                        .setDisabled(isTarget ? true : Boolean(btn.disabled));
+                    const emoji = isTarget && disabledEmoji ? disabledEmoji : btn.emoji;
+                    if (emoji) newBtn.setEmoji(emoji);
+                    newRow.addComponents(newBtn);
+                }
+                return newRow.toJSON();
+            };
+
+            const updatedComponents = interaction.message.components.map((comp: any) => {
+                const raw = typeof comp?.toJSON === 'function' ? comp.toJSON() : comp;
+                if (raw?.type === 1) {
+                    const nextRow = updateRow(raw);
+                    return { toJSON: () => nextRow };
+                }
+                if (raw?.type === 17 && Array.isArray(raw.components)) {
+                    const newContainer = {
+                        ...raw,
+                        components: raw.components.map((sub: any) => updateRow(sub))
+                    };
+                    return { toJSON: () => newContainer };
+                }
+                return comp;
+            });
+
+            await interaction.message.edit({
+                components: updatedComponents,
+                flags: MessageFlags.IsComponentsV2
+            });
+        } catch {
+            // 忽略原訊息已被刪除或無權編輯的情況
+        }
     }
 
     /**

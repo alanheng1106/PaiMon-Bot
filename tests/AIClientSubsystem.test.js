@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import ILLMProvider from '../src/core/ai/ILLMProvider';
 import ImageSynthesisService from '../src/core/ai/ImageSynthesisService';
 import AIChatSessionManager from '../src/core/ai/AIChatSessionManager';
 import ToolRegistry from '../src/core/tools/ToolRegistry';
@@ -59,6 +60,39 @@ describe('AI Subsystem (OOP & Single Responsibility)', () => {
             assert.equal(session.length, 3);
             assert.ok(session[1].content.includes('頻道背景閒聊記錄'));
             assert.ok(session[2].content.includes('安靜聽著'));
+        });
+
+        it('commits user and assistant turns atomically and strips base64 images from session RAM', async () => {
+            class SimpleLLMProvider extends ILLMProvider {
+                get ready() {
+                    return true;
+                }
+                async *chatStream() {
+                    yield { content: 'Hello response' };
+                }
+            }
+
+            const manager = new AIChatSessionManager();
+            const client = new AIClient({
+                llmProvider: new SimpleLLMProvider(),
+                sessionManager: manager,
+                toolRegistry: new ToolRegistry()
+            });
+
+            const reply = await client.generateResponse(
+                'Describe this image',
+                'ch-atomic',
+                'Alice',
+                ['data:image/png;base64,AAA']
+            );
+
+            assert.equal(reply, 'Hello response');
+            const session = manager.ensureSession('ch-atomic');
+            const userEntry = session.find((m) => m.role === 'user');
+            const assistantEntry = session.find((m) => m.role === 'assistant');
+            assert.ok(userEntry);
+            assert.ok(assistantEntry);
+            assert.equal(userEntry.images, undefined);
         });
     });
 });

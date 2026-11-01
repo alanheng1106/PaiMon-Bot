@@ -458,6 +458,43 @@ describe('ModTimeoutButtonHandler (Quick Re-timeout)', () => {
         const cardJson = repliedPayload.components[0].toJSON();
         assert.match(cardJson.components[0].content, /# ⏳ 成員禁言處分/);
     });
+
+    it('rejects timeout when clicking member has equal or lower role hierarchy than target', async () => {
+        let sentError = null;
+        const targetMember = {
+            id: '123456789012345678',
+            user: { id: '123456789012345678', tag: 'SeniorMod#0001' },
+            roles: { highest: { position: 50 } },
+            moderatable: true
+        };
+        const mockBot = {
+            user: { id: 'bot-id' },
+            sendError: async (_i, title, desc) => {
+                sentError = { title, desc };
+            }
+        };
+        const mockInteraction = {
+            inCachedGuild: () => true,
+            customId: 'mod:timeout:123456789012345678:600',
+            user: { id: 'junior-mod', tag: 'JuniorMod#0001' },
+            member: { roles: { highest: { position: 10 } } },
+            memberPermissions: { has: () => true },
+            guild: {
+                ownerId: 'owner-id',
+                members: {
+                    me: { permissions: { has: () => true } },
+                    fetch: async () => targetMember
+                }
+            },
+            deferReply: async () => {},
+            deferred: true
+        };
+
+        await handler.execute(mockInteraction, mockBot);
+        assert.ok(sentError);
+        assert.equal(sentError.title, '權限受限');
+        assert.match(sentError.desc, /最高身分組不高於/);
+    });
 });
 
 describe('ComponentRouter Integration with Timeout Handlers', () => {

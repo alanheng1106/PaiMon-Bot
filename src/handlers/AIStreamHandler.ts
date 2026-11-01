@@ -280,7 +280,10 @@ class AIStreamHandler extends BaseMessageHandler {
 
             let images: string[] = [];
             if (imageAttachments.length > 0 && bot.ai) {
-                const fetchPromises = imageAttachments.map((att: any) => bot.ai.urlToBase64(att.url));
+                const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15 MB
+                const fetchPromises = imageAttachments
+                    .filter((att: any) => !att.size || att.size <= MAX_IMAGE_BYTES)
+                    .map((att: any) => bot.ai.urlToBase64(att.url));
                 const results = await Promise.all(fetchPromises);
                 images = results.filter((img): img is string => Boolean(img));
             }
@@ -289,12 +292,24 @@ class AIStreamHandler extends BaseMessageHandler {
             // Large files (> 40 KB) are stored in LargeFileCache and sent as a structural outline.
             // Small files are injected verbatim as before.
             const largeFileCache: LargeFileCache | null = (bot as any).largeFileCache ?? null;
+            const MAX_TEXT_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5 MB
+            const MAX_PDF_ATTACHMENT_BYTES = 20 * 1024 * 1024; // 20 MB
 
             const textFilePromises = textFileAttachments.map(async (att: any) => {
                 try {
+                    if (typeof att.size === 'number' && att.size > MAX_TEXT_ATTACHMENT_BYTES) {
+                        return `【附加檔案: ${att.name} (略過: 檔案大小超過 5MB 上限)】`;
+                    }
                     const res = await fetch(att.url);
                     if (!res.ok) return null;
+                    const cl = parseInt(res.headers?.get?.('content-length') || '', 10);
+                    if (!isNaN(cl) && cl > MAX_TEXT_ATTACHMENT_BYTES) {
+                        return `【附加檔案: ${att.name} (略過: 檔案大小超過 5MB 上限)】`;
+                    }
                     const rawText = await res.text();
+                    if (Buffer.byteLength(rawText, 'utf8') > MAX_TEXT_ATTACHMENT_BYTES) {
+                        return `【附加檔案: ${att.name} (略過: 檔案大小超過 5MB 上限)】`;
+                    }
                     const ext = (att.name || '').split('.').pop()?.toLowerCase() || '';
 
                     // Large file path: cache + send outline only
@@ -322,9 +337,19 @@ class AIStreamHandler extends BaseMessageHandler {
 
             const pdfPromises = pdfAttachments.map(async (att: any) => {
                 try {
+                    if (typeof att.size === 'number' && att.size > MAX_PDF_ATTACHMENT_BYTES) {
+                        return `【附加 PDF: ${att.name} (略過: 檔案大小超過 20MB 上限)】`;
+                    }
                     const res = await fetch(att.url);
                     if (!res.ok) return `【附加 PDF: ${att.name} (下載失敗: HTTP ${res.status})】`;
+                    const cl = parseInt(res.headers?.get?.('content-length') || '', 10);
+                    if (!isNaN(cl) && cl > MAX_PDF_ATTACHMENT_BYTES) {
+                        return `【附加 PDF: ${att.name} (略過: 檔案大小超過 20MB 上限)】`;
+                    }
                     const arrayBuffer = await res.arrayBuffer();
+                    if (arrayBuffer.byteLength > MAX_PDF_ATTACHMENT_BYTES) {
+                        return `【附加 PDF: ${att.name} (略過: 檔案大小超過 20MB 上限)】`;
+                    }
                     const pdfBytes = new Uint8Array(arrayBuffer);
                     const { text: pdfText, totalPages, pages, isEmpty } = await extractTextFromPDF(pdfBytes);
 
@@ -472,6 +497,10 @@ class AIStreamHandler extends BaseMessageHandler {
                 const authorName = userName;
                 const authorMessage = userMessage;
                 const replyText = finalReplyText;
+                const activeEntry =
+                    typeof bot.ai?.getActiveModel === 'function' ? bot.ai.getActiveModel(message.guild?.id) : null;
+                const reflectProvider = activeEntry?.provider || bot.ai?.llmProvider;
+                const reflectModel = activeEntry?.model || bot.ai?.model;
                 setImmediate(() => {
                     bot.memoryReflector
                         .reflect({
@@ -479,8 +508,8 @@ class AIStreamHandler extends BaseMessageHandler {
                             userName: authorName,
                             userMessage: authorMessage,
                             assistantReply: replyText,
-                            llmProvider: bot.ai.llmProvider,
-                            model: bot.ai.model
+                            llmProvider: reflectProvider,
+                            model: reflectModel
                         })
                         .catch((err: any) =>
                             console.warn('[AIStreamHandler] MemoryReflector background error:', err.message)

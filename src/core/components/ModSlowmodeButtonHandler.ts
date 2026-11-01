@@ -143,7 +143,12 @@ class ModSlowmodeButtonHandler extends BaseComponentHandler {
             }
         } catch (err) {
             console.error('[ModSlowmodeButtonHandler] Slowmode update failed:', err);
-            await bot.sendError(interaction, '執行失敗', '調整頻道慢速模式時出了點問題，請確認我有足夠權限後再試。');
+            // Avoid overwriting the public console card via editReply when deferUpdate was used
+            const errTarget =
+                isDeferredUpdate && typeof interaction.followUp === 'function'
+                    ? Object.assign(Object.create(interaction), { deferred: true, replied: true })
+                    : interaction;
+            await bot.sendError(errTarget, '執行失敗', '調整頻道慢速模式時出了點問題，請確認我有足夠權限後再試。');
         }
     }
 }

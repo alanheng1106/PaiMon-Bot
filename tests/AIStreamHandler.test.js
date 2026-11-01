@@ -889,4 +889,86 @@ describe('AIStreamHandler (Streaming AI Pipeline Handler)', () => {
         // The faster question finishes first concurrently, proving they don't block each other
         assert.deepEqual(completionOrder, ['快問題', '慢問題']);
     });
+
+    it('passes the active guild model to memoryReflector.reflect', async () => {
+        const handler = new AIStreamHandler();
+        let reflectedProvider = null;
+        let reflectedModelId = null;
+        const guildProvider = { chat: async () => '{}' };
+
+        const mockPlaceholder = { edit: async () => {} };
+        const mockMessage = {
+            content: '<@bot-123> 你好',
+            guild: { id: 'guild-999' },
+            attachments: { size: 0, filter: () => ({ size: 0, values: () => [] }) },
+            channel: { id: 'ch-1', sendTyping: async () => {} },
+            reply: async () => mockPlaceholder,
+            author: { id: 'u-1', username: 'Traveler' },
+            mentions: { everyone: false, has: () => true }
+        };
+
+        const mockBot = {
+            user: { id: 'bot-123' },
+            ai: {
+                generateResponse: async () => '你好旅行者！',
+                getActiveModel: (guildId) => {
+                    assert.equal(guildId, 'guild-999');
+                    return { id: 'custom-guild-model', name: 'Custom Guild Model', model: 'gemma-4-guild', provider: guildProvider };
+                }
+            },
+            memoryReflector: {
+                reflect: async ({ llmProvider, model }) => {
+                    reflectedProvider = llmProvider;
+                    reflectedModelId = model;
+                }
+            }
+        };
+
+        await handler.handle(mockMessage, mockBot);
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.equal(reflectedProvider, guildProvider);
+        assert.equal(reflectedModelId, 'gemma-4-guild');
+    });
+
+    it('skips text attachments exceeding the 5MB size cap without downloading them', async () => {
+        const handler = new AIStreamHandler();
+        let capturedPrompt = null;
+
+        const oversizedAtt = {
+            name: 'huge.log',
+            size: 6 * 1024 * 1024,
+            contentType: 'text/plain',
+            url: 'https://invalid.example.com/should-not-be-fetched.log'
+        };
+
+        const mockMessage = {
+            content: '<@bot-123> 幫我看這個 log',
+            guild: { id: 'guild-1' },
+            attachments: {
+                size: 1,
+                filter: (pred) => {
+                    const matched = [oversizedAtt].filter(pred);
+                    return { size: matched.length, values: () => matched };
+                }
+            },
+            channel: { id: 'ch-1', sendTyping: async () => {} },
+            reply: async () => ({ edit: async () => {} }),
+            author: { id: 'u-1', username: 'Traveler' },
+            mentions: { everyone: false, has: () => true }
+        };
+
+        const mockBot = {
+            user: { id: 'bot-123' },
+            ai: {
+                generateResponse: async (prompt) => {
+                    capturedPrompt = prompt;
+                    return '檔案太大了喔！';
+                }
+            }
+        };
+
+        await handler.handle(mockMessage, mockBot);
+        assert.ok(capturedPrompt);
+        assert.match(capturedPrompt, /huge\.log \(略過: 檔案大小超過 5MB 上限\)/);
+    });
 });

@@ -437,4 +437,47 @@ describe('ModSlowmodeButtonHandler (Scheme B Interactive Console Controls)', () 
         assert.equal(sentError.title, '執行失敗');
         assert.match(sentError.desc, /調整頻道慢速模式時出了點問題/);
     });
+
+    it('uses ephemeral followUp instead of overwriting console card via editReply when error occurs after deferUpdate', async () => {
+        let followUpPayload = null;
+        let editReplyCalled = false;
+        const mockChannel = {
+            id: '123456789012345678',
+            rateLimitPerUser: 10,
+            setRateLimitPerUser: async () => {
+                throw new Error('REST API socket error');
+            },
+            permissionsFor: () => ({ has: () => true })
+        };
+        const mockBot = {
+            sendError: async (target) => {
+                if (target.deferred && target.replied) {
+                    await target.followUp({ content: 'ephemeral error', flags: 64 });
+                } else {
+                    await target.editReply({ content: 'overwritten error' });
+                }
+            }
+        };
+        const mockInteraction = {
+            inCachedGuild: () => true,
+            customId: 'mod:slowmode:reset:123456789012345678',
+            user: { tag: 'Moderator#0001' },
+            memberPermissions: { has: () => true },
+            guild: {
+                members: { me: { id: 'bot_id' } },
+                channels: { cache: new Map([['123456789012345678', mockChannel]]) }
+            },
+            deferUpdate: async () => {},
+            editReply: async () => {
+                editReplyCalled = true;
+            },
+            followUp: async (payload) => {
+                followUpPayload = payload;
+            }
+        };
+
+        await handler.execute(mockInteraction, mockBot);
+        assert.equal(editReplyCalled, false);
+        assert.ok(followUpPayload);
+    });
 });

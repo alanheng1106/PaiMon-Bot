@@ -1,11 +1,4 @@
-import {
-    ButtonInteraction,
-    PermissionFlagsBits,
-    MessageFlags,
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle
-} from 'discord.js';
+import { ButtonInteraction, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import BaseComponentHandler from './BaseComponentHandler';
 import ModerationHelper from '../../utils/ModerationHelper';
 import type BotClient from '../BotClient';
@@ -54,6 +47,20 @@ class ModBanButtonHandler extends BaseComponentHandler {
         try {
             // 4. 若成員仍在伺服器內，檢查階層保護
             const member = await interaction.guild.members.fetch(targetUserId).catch(() => null);
+            const targetUser = member?.user ??
+                (await interaction.client?.users?.fetch(targetUserId).catch(() => null)) ?? {
+                    id: targetUserId,
+                    username: '未知使用者',
+                    tag: '未知使用者'
+                };
+
+            const targetErr = ModerationHelper.validateTarget(interaction, bot, targetUser as any, member, {
+                actionName: '封鎖該成員'
+            });
+            if (targetErr) {
+                return await bot.sendError(interaction, '權限受限', targetErr);
+            }
+
             if (member && !member.bannable) {
                 return await bot.sendError(
                     interaction,
@@ -61,14 +68,6 @@ class ModBanButtonHandler extends BaseComponentHandler {
                     '我封鎖不了這個人! 請確認我的最高身分組高於該成員。'
                 );
             }
-
-            // 5. 獲取使用者對象
-            const targetUser = member?.user ??
-                (await interaction.client.users.fetch(targetUserId).catch(() => null)) ?? {
-                    id: targetUserId,
-                    username: '未知使用者',
-                    tag: '未知使用者'
-                };
 
             // 6. 執行封鎖
             await interaction.guild.members.ban(targetUserId, {
@@ -79,48 +78,7 @@ class ModBanButtonHandler extends BaseComponentHandler {
             });
 
             // 7. 嘗試將原卡片的按鈕設為已禁用（防止重複點擊與競態條件）
-            try {
-                if (interaction.message && interaction.message.components) {
-                    const messageComponents = interaction.message.components;
-                    const updateButtons = (row: any) => {
-                        const rowJson = row.toJSON ? row.toJSON() : row;
-                        if (rowJson.type === 1 && Array.isArray(rowJson.components)) {
-                            const newRow = new ActionRowBuilder<ButtonBuilder>();
-                            for (const btn of rowJson.components) {
-                                const newBtn = new ButtonBuilder()
-                                    .setCustomId(btn.custom_id)
-                                    .setLabel(btn.custom_id === interaction.customId ? '已升級為封鎖' : btn.label || '')
-                                    .setStyle(
-                                        btn.custom_id === interaction.customId ? ButtonStyle.Secondary : btn.style
-                                    )
-                                    .setDisabled(btn.custom_id === interaction.customId ? true : Boolean(btn.disabled));
-                                if (btn.emoji) newBtn.setEmoji(btn.emoji);
-                                newRow.addComponents(newBtn);
-                            }
-                            return newRow.toJSON();
-                        }
-                        return rowJson;
-                    };
-
-                    const updatedComponents = messageComponents.map((c: any) => {
-                        const raw = c.toJSON ? c.toJSON() : c;
-                        if (raw.type === 1) {
-                            return { toJSON: () => updateButtons(raw) };
-                        }
-                        if (raw.type === 17 && Array.isArray(raw.components)) {
-                            const newContainer = {
-                                ...raw,
-                                components: raw.components.map((child: any) => updateButtons(child))
-                            };
-                            return { toJSON: () => newContainer };
-                        }
-                        return c;
-                    });
-                    await interaction.message.edit({ components: updatedComponents as any }).catch(() => {});
-                }
-            } catch {
-                // 忽略訊息編輯異常，不阻斷處分反饋
-            }
+            await ModerationHelper.disableCardButton(interaction, '已升級為封鎖');
 
             const payload = ModerationHelper.buildActionableBanCard({
                 title: '成員封鎖處分 (升級生效)',

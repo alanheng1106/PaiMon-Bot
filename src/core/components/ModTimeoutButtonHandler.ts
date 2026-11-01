@@ -1,11 +1,4 @@
-import {
-    ButtonInteraction,
-    PermissionFlagsBits,
-    MessageFlags,
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle
-} from 'discord.js';
+import { ButtonInteraction, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import BaseComponentHandler from './BaseComponentHandler';
 import ModerationHelper from '../../utils/ModerationHelper';
 import type BotClient from '../BotClient';
@@ -78,6 +71,13 @@ class ModTimeoutButtonHandler extends BaseComponentHandler {
             }
 
             // 5. 檢查階層保護
+            const targetErr = ModerationHelper.validateTarget(interaction, bot, member.user, member, {
+                actionName: '禁言該成員'
+            });
+            if (targetErr) {
+                return await bot.sendError(interaction, '權限受限', targetErr);
+            }
+
             if (!member.moderatable) {
                 return await bot.sendError(
                     interaction,
@@ -102,48 +102,7 @@ class ModTimeoutButtonHandler extends BaseComponentHandler {
             );
 
             // 8. 更新原卡片按鈕狀態（禁用點擊按鈕，避免重複操作）
-            try {
-                if (interaction.message && interaction.message.components) {
-                    const messageComponents = interaction.message.components;
-                    const updateButtons = (row: any) => {
-                        const rowJson = row.toJSON ? row.toJSON() : row;
-                        if (rowJson.type === 1 && Array.isArray(rowJson.components)) {
-                            const newRow = new ActionRowBuilder<ButtonBuilder>();
-                            for (const btn of rowJson.components) {
-                                const newBtn = new ButtonBuilder()
-                                    .setCustomId(btn.custom_id)
-                                    .setLabel(btn.custom_id === interaction.customId ? '已重新禁言' : btn.label || '')
-                                    .setStyle(
-                                        btn.custom_id === interaction.customId ? ButtonStyle.Secondary : btn.style
-                                    )
-                                    .setDisabled(btn.custom_id === interaction.customId ? true : Boolean(btn.disabled));
-                                if (btn.emoji) newBtn.setEmoji(btn.emoji);
-                                newRow.addComponents(newBtn);
-                            }
-                            return newRow.toJSON();
-                        }
-                        return rowJson;
-                    };
-
-                    const updatedComponents = messageComponents.map((c: any) => {
-                        const raw = c.toJSON ? c.toJSON() : c;
-                        if (raw.type === 1) {
-                            return { toJSON: () => updateButtons(raw) };
-                        }
-                        if (raw.type === 17 && Array.isArray(raw.components)) {
-                            const newContainer = {
-                                ...raw,
-                                components: raw.components.map((child: any) => updateButtons(child))
-                            };
-                            return { toJSON: () => newContainer };
-                        }
-                        return c;
-                    });
-                    await interaction.message.edit({ components: updatedComponents as any }).catch(() => {});
-                }
-            } catch {
-                // 忽略訊息更新異常
-            }
+            await ModerationHelper.disableCardButton(interaction, '已重新禁言');
 
             // 9. 回傳禁言生效的 Scheme B 卡片 (Ephemeral)
             const payload = ModerationHelper.buildActionableTimeoutCard({

@@ -81,6 +81,20 @@ class ImageSynthesisService {
         return this.#defaultSize;
     }
 
+    async #fetchBoundedBuffer(url: string, label: string, maxBytes: number = 25 * 1024 * 1024): Promise<Buffer> {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`無法下載${label}: ${res.statusText}`);
+        const cl = parseInt(res.headers?.get?.('content-length') || '', 10);
+        if (!isNaN(cl) && cl > maxBytes) {
+            throw new Error(`${label}大小超過上限 (${Math.round(maxBytes / 1024 / 1024)}MB)`);
+        }
+        const arrayBuf = await res.arrayBuffer();
+        if (arrayBuf.byteLength > maxBytes) {
+            throw new Error(`${label}大小超過上限 (${Math.round(maxBytes / 1024 / 1024)}MB)`);
+        }
+        return Buffer.from(arrayBuf);
+    }
+
     /**
      * Generates an image from a text prompt and returns the raw Buffer.
      * Default resolution is 3840x2160 (4K UHD) for gpt-image-2.
@@ -109,10 +123,7 @@ class ImageSynthesisService {
                 }
 
                 if (imgData?.url) {
-                    const imgRes = await fetch(imgData.url);
-                    if (!imgRes.ok) throw new Error(`無法下載生成圖片: ${imgRes.statusText}`);
-                    const arrayBuf = await imgRes.arrayBuffer();
-                    return Buffer.from(arrayBuf);
+                    return await this.#fetchBoundedBuffer(imgData.url, '生成圖片');
                 }
 
                 throw new Error('API 回應未包含圖片資料 (b64_json 或 url)。');
@@ -163,9 +174,7 @@ class ImageSynthesisService {
                 const base64Part = referenceImage.split(',')[1] || referenceImage;
                 buffer = Buffer.from(base64Part, 'base64');
             } else if (referenceImage.startsWith('http://') || referenceImage.startsWith('https://')) {
-                const res = await fetch(referenceImage);
-                if (!res.ok) throw new Error(`無法下載參考圖片: ${res.statusText}`);
-                buffer = Buffer.from(await res.arrayBuffer());
+                buffer = await this.#fetchBoundedBuffer(referenceImage, '參考圖片');
             } else {
                 buffer = Buffer.from(referenceImage, 'base64');
             }
@@ -187,9 +196,7 @@ class ImageSynthesisService {
                     return Buffer.from(imgData.b64_json, 'base64');
                 }
                 if (imgData?.url) {
-                    const imgRes = await fetch(imgData.url);
-                    if (!imgRes.ok) throw new Error(`無法下載生成圖片: ${imgRes.statusText}`);
-                    return Buffer.from(await imgRes.arrayBuffer());
+                    return await this.#fetchBoundedBuffer(imgData.url, '生成圖片');
                 }
             } catch (err: any) {
                 console.error('[ImageSynthesisService] Mock client editImage failed:', err.message);
@@ -239,10 +246,7 @@ class ImageSynthesisService {
                     return Buffer.from(imgData.b64_json, 'base64');
                 }
                 if (imgData?.url) {
-                    const imgRes = await fetch(imgData.url);
-                    if (!imgRes.ok) throw new Error(`無法下載魔改生成圖片: ${imgRes.statusText}`);
-                    const arrayBuf = await imgRes.arrayBuffer();
-                    return Buffer.from(arrayBuf);
+                    return await this.#fetchBoundedBuffer(imgData.url, '魔改生成圖片');
                 }
 
                 throw new Error('API 回應未包含圖片資料 (b64_json 或 url)。');

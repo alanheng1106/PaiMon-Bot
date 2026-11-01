@@ -1,13 +1,6 @@
-import {
-    ButtonInteraction,
-    PermissionFlagsBits,
-    PermissionsBitField,
-    MessageFlags,
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle
-} from 'discord.js';
+import { ButtonInteraction, PermissionFlagsBits, PermissionsBitField, MessageFlags } from 'discord.js';
 import BaseComponentHandler from './BaseComponentHandler';
+import ModerationHelper from '../../utils/ModerationHelper';
 import type BotClient from '../BotClient';
 
 /**
@@ -88,47 +81,7 @@ class ModUnlockButtonHandler extends BaseComponentHandler {
             );
 
             // 7. 將原卡片的按鈕設為已禁用，防止重複點擊與競態條件
-            try {
-                if (interaction.message && interaction.message.components) {
-                    const messageComponents = interaction.message.components;
-                    const updateButtons = (row: any) => {
-                        const rowJson = row.toJSON ? row.toJSON() : row;
-                        if (rowJson.type === 1 && Array.isArray(rowJson.components)) {
-                            const newRow = new ActionRowBuilder<ButtonBuilder>();
-                            for (const btn of rowJson.components) {
-                                const isTarget = btn.custom_id === interaction.customId;
-                                const newBtn = new ButtonBuilder()
-                                    .setCustomId(btn.custom_id)
-                                    .setLabel(isTarget ? '已解除鎖定' : btn.label || '')
-                                    .setStyle(isTarget ? ButtonStyle.Secondary : btn.style)
-                                    .setDisabled(isTarget ? true : Boolean(btn.disabled));
-                                if (btn.emoji) newBtn.setEmoji(isTarget ? '🔓' : btn.emoji);
-                                newRow.addComponents(newBtn);
-                            }
-                            return newRow.toJSON();
-                        }
-                        return rowJson;
-                    };
-
-                    const updatedComponents = messageComponents.map((c: any) => {
-                        const raw = c.toJSON ? c.toJSON() : c;
-                        if (raw.type === 1) {
-                            return { toJSON: () => updateButtons(raw) };
-                        }
-                        if (raw.type === 17 && Array.isArray(raw.components)) {
-                            const newContainer = {
-                                ...raw,
-                                components: raw.components.map((child: any) => updateButtons(child))
-                            };
-                            return { toJSON: () => newContainer };
-                        }
-                        return c;
-                    });
-                    await interaction.message.edit({ components: updatedComponents as any }).catch(() => {});
-                }
-            } catch {
-                // 忽略原卡片更新錯誤
-            }
+            await ModerationHelper.disableCardButton(interaction, '已解除鎖定', '🔓');
 
             // 8. 發送成功回執
             await bot.sendSuccess(

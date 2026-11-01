@@ -2,41 +2,11 @@ import {
     SlashCommandBuilder,
     PermissionFlagsBits,
     PermissionsBitField,
-    ChatInputCommandInteraction,
-    GuildTextBasedChannel,
-    PermissionOverwriteManager
+    ChatInputCommandInteraction
 } from 'discord.js';
 import type BotClient from '../../core/BotClient';
 import type { Command } from '../../types';
 import ModerationHelper from '../../utils/ModerationHelper';
-
-type LockableGuildChannel = GuildTextBasedChannel & {
-    permissionOverwrites: PermissionOverwriteManager;
-    name: string;
-};
-
-function isLockableChannel(channel: unknown): channel is LockableGuildChannel {
-    if (!channel || typeof channel !== 'object') return false;
-    const c = channel as {
-        isThread?: () => boolean;
-        permissionOverwrites?: unknown;
-        permissionsFor?: unknown;
-        name?: unknown;
-    };
-    try {
-        if (typeof c.isThread === 'function' && c.isThread()) {
-            return false;
-        }
-    } catch {
-        return false;
-    }
-    return (
-        typeof c.permissionOverwrites === 'object' &&
-        c.permissionOverwrites !== null &&
-        typeof c.permissionsFor === 'function' &&
-        typeof c.name === 'string'
-    );
-}
 
 const command: Command = {
     data: new SlashCommandBuilder()
@@ -58,7 +28,7 @@ const command: Command = {
             return await bot.sendError(interaction, '操作無效', '無法在討論串內使用此指令，請直接在文字頻道執行.');
         }
 
-        if (!isLockableChannel(channel)) {
+        if (!ModerationHelper.isLockableChannel(channel)) {
             return await bot.sendError(interaction, '操作無效', '無法在此頻道執行此操作');
         }
 
