@@ -114,19 +114,6 @@ export class MemoryReflector {
                         replyContent += chunk.content;
                     }
                 }
-            } else if (typeof (provider as any).generateChatCompletion === 'function') {
-                const response = await (provider as any).generateChatCompletion({
-                    model: activeModel,
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: userPrompt }
-                    ],
-                    options: {
-                        temperature: 0.1,
-                        max_tokens: 300
-                    }
-                });
-                replyContent = response?.message?.content?.trim() || response?.content?.trim() || '';
             }
 
             replyContent = replyContent.trim();

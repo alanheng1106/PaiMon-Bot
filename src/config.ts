@@ -33,23 +33,7 @@ export const Emojis = {
     MeowAI: '<:meowai:1553012543189024799>'
 } as const;
 
-export const EmojiIds = {
-    Success: '1524601509772529665',
-    Error: '1524603300752785550',
-    Warning: '1524603300752785550',
-    ChatGPT: '1552673091241508945',
-    DeepSeek: '1552670847406313562',
-    Gemini: '1552670563749724302',
-    Qwen: '1552672304461254737',
-    Grok: '1553008331390722048',
-    VTC: '1552676338052239400',
-    Ollama: '1552675730943385730',
-    MeowAI: '1553012543189024799'
-} as const;
-
 export const LinkFixer = {
-    MaxCache: 2000, // Maximum tracked fixed messages in LRU cache
-    CacheTTL: 1000 * 60 * 60 * 24, // 24 hours
     DefaultCardColor: 0x00aeec, // Default brand color for embed cards
     MaxDescriptionLength: 2000 // Discord maximum description character limit
 } as const;
@@ -126,7 +110,6 @@ export const Guild = {
 const config = {
     Colors,
     Emojis,
-    EmojiIds,
     LinkFixer,
     AI,
     Music,

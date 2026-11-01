@@ -18,7 +18,8 @@ class DefaultOGMetadataScraper extends BaseMetadataScraper {
             }).catch(() => null);
 
             if (!res || !res.ok) return null;
-            const html = await res.text();
+            const html = await this.readBoundedHtml(res);
+            if (!html) return null;
 
             const getMeta = (prop: string) => {
                 const m =

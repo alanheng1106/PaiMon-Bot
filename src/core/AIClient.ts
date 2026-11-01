@@ -48,8 +48,6 @@ class AIClient {
         const { llmProvider = null, imageService = null, toolRegistry = null, sessionManager = null } = options;
 
         this.#modelRegistry = options.modelRegistry || new ModelRegistry(options.settings || null);
-
-        // Image Synthesis Service Init (Optional, disabled)
         this.#imageService = imageService || null;
 
         // LLM Provider Strategy Init (OCP / DIP)
@@ -86,7 +84,6 @@ class AIClient {
             throw new Error('[AIClient] toolRegistry is required. Please inject it via the AppContainerBuilder.');
         }
 
-        this.#imageService = imageService;
         this.#userMemoryStore = options.userMemoryStore || null;
         this.#maxToolIterations =
             options.maxToolIterations ?? options.config?.MaxToolIterations ?? AIConfig?.MaxToolIterations ?? 5;
@@ -596,21 +593,13 @@ class AIClient {
         }
     }
 
-    async generateImage(prompt: string, size: string = '3840x2160'): Promise<Buffer> {
-        if (this.#imageService && this.#imageService.ready) {
-            return await this.#imageService.generateImage(prompt, size);
-        }
-        throw new Error('圖片生成服務未就緒：未配置 API 金鑰。');
-    }
-
     async urlToBase64(url: string): Promise<string | null> {
         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
-            const arrayBuffer = await response.arrayBuffer();
-            return Buffer.from(arrayBuffer).toString('base64');
-        } catch (error: any) {
-            console.error('[AIClient] urlToBase64 failed:', error.message);
+            const res = await fetch(url);
+            if (!res.ok) return null;
+            const mime = res.headers.get('content-type') || 'image/jpeg';
+            return `data:${mime};base64,${Buffer.from(await res.arrayBuffer()).toString('base64')}`;
+        } catch {
             return null;
         }
     }

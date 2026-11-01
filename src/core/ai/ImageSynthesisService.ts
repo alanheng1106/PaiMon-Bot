@@ -201,7 +201,7 @@ class ImageSynthesisService {
         if (this.#baseURL && this.#apiKey) {
             try {
                 const formData = new FormData();
-                const blob = new Blob([buffer], { type: 'image/png' });
+                const blob = new Blob([new Uint8Array(buffer)], { type: 'image/png' });
                 formData.append('image', blob, 'reference.png');
                 formData.append('prompt', prompt);
                 if (this.#model) {
@@ -255,21 +255,6 @@ class ImageSynthesisService {
         // Fallback: If no edits endpoint is configured, fall back to generateImage
         console.warn('[ImageSynthesisService] Edit endpoint not available, falling back to generateImage');
         return this.generateImage(prompt, size);
-    }
-
-    /**
-     * Utility to convert an image URL to a base64 string.
-     */
-    async urlToBase64(url: string): Promise<string | null> {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
-            const arrayBuffer = await response.arrayBuffer();
-            return Buffer.from(arrayBuffer).toString('base64');
-        } catch (error: any) {
-            console.error('[ImageSynthesisService] urlToBase64 failed:', error.message);
-            return null;
-        }
     }
 }
 

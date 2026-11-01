@@ -7,18 +7,11 @@
  * - Metadata scraping strategy dispatch (Strategy Pattern)
  */
 
-import { LRUCache } from 'lru-cache';
-import { LinkFixer as LinkFixConfig } from '../config';
 import DomainRegistry, { DomainDefinition, ProviderDefinition } from './linkfixer/DomainRegistry';
 import BaseMetadataScraper from './scrapers/BaseMetadataScraper';
 import DouyinMetadataScraper from './scrapers/DouyinMetadataScraper';
 import DefaultOGMetadataScraper from './scrapers/DefaultOGMetadataScraper';
 import DiscordSanitizer from '../utils/DiscordSanitizer';
-
-export interface FixedMessageMeta {
-    createdAt?: number;
-    [key: string]: any;
-}
 
 export interface LinkFixProcessOptions {
     disabledDomains?: string[];
@@ -46,7 +39,6 @@ export interface LinkFixResult {
 class LinkFixer {
     #domainRegistry: DomainRegistry;
     #scrapers: BaseMetadataScraper[] = [];
-    #fixedMessages: LRUCache<string, FixedMessageMeta>;
 
     constructor(
         domainRegistryOrDomains: DomainRegistry | DomainDefinition[] | null = null,
@@ -61,15 +53,6 @@ class LinkFixer {
             this.#domainRegistry = new DomainRegistry();
         }
 
-        // Memory Leak Prevention: Use LRU Cache with TTL from config
-        const maxCache = LinkFixConfig?.MaxCache || 2000;
-        const cacheTTL = LinkFixConfig?.CacheTTL || 86400000;
-
-        this.#fixedMessages = new LRUCache<string, FixedMessageMeta>({
-            max: maxCache,
-            ttl: cacheTTL
-        });
-
         // Strategy Pattern: Register metadata scrapers
         this.#scrapers = scrapers.length > 0 ? scrapers : [new DouyinMetadataScraper(), new DefaultOGMetadataScraper()];
     }
@@ -82,32 +65,10 @@ class LinkFixer {
     }
 
     /**
-     * Access fixed messages LRU cache instance (read-only reference).
-     */
-    get fixedMessages(): LRUCache<string, FixedMessageMeta> {
-        return this.#fixedMessages;
-    }
-
-    /**
      * Register a custom metadata scraper strategy (DIP / Open-Closed Principle).
      */
     registerScraper(scraper: BaseMetadataScraper): void {
         this.#scrapers.unshift(scraper);
-    }
-
-    trackFixedMessage(messageId: string, metadata: Record<string, any>): void {
-        this.#fixedMessages.set(messageId, {
-            ...metadata,
-            createdAt: Date.now()
-        });
-    }
-
-    getFixedMessage(messageId: string): FixedMessageMeta | undefined {
-        return this.#fixedMessages.get(messageId);
-    }
-
-    forgetFixedMessage(messageId: string): void {
-        this.#fixedMessages.delete(messageId);
     }
 
     isIgnored(rawContent: string, urlMatch: string): boolean {

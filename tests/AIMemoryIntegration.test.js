@@ -32,19 +32,6 @@ class TestLLMProvider extends ILLMProvider {
             yield { content: '收到！本派蒙已經為你解答。' };
         }
     }
-
-    async generateChatCompletion(options) {
-        if (this.completionFn) {
-            return await this.completionFn(options);
-        }
-        return {
-            message: {
-                content: JSON.stringify([
-                    { fact: '習慣使用 TypeScript 進行全端開發', category: 'preference' }
-                ])
-            }
-        };
-    }
 }
 
 describe('AI Memory Dual-Engine System Integration', () => {

@@ -15,26 +15,13 @@ import {
     StringSelectMenuInteraction,
     PermissionFlagsBits
 } from 'discord.js';
-import { Colors, Emojis, EmojiIds } from '../../config';
+import { Colors, Emojis } from '../../config';
 import OwnerUtils from '../../utils/OwnerUtils';
 import type BotClient from '../../core/BotClient';
 import type { Command } from '../../types';
 
 import { getModelEmoji, getPlatformMeta, cleanModelName } from '../../core/ai/AIErrorDiagnostic';
 export { getModelEmoji, getPlatformMeta, cleanModelName };
-
-export function getModelSelectEmoji(id: string): string {
-    const lower = id.toLowerCase();
-    if (lower.includes('deepseek')) return EmojiIds.DeepSeek;
-    if (lower.includes('gemini')) return EmojiIds.Gemini;
-    if (lower.includes('gpt')) return EmojiIds.ChatGPT;
-    if (lower.includes('qwen')) return EmojiIds.Qwen;
-    if (lower.includes('grok')) return EmojiIds.Grok;
-    if (lower.includes('kimi')) return '🌙';
-    if (lower.includes('glm')) return '🪐';
-    if (lower.includes('minimax')) return '🌟';
-    return '🤖';
-}
 
 export const cleanModelDesc = (desc?: string) => {
     if (!desc) return '高效能運算節點';
@@ -188,7 +175,7 @@ export function buildModelSelectMenu(
             .setDescription(cleanModelDesc(m.description).slice(0, 100))
             .setDefault(activeId === m.id);
 
-        const emoji = getModelSelectEmoji(m.id);
+        const emoji = getModelEmoji(m.id);
         if (emoji) {
             option.setEmoji(emoji);
         }

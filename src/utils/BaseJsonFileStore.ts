@@ -9,6 +9,8 @@ class BaseJsonFileStore<T extends Record<string, any> = Record<string, any>> {
     #filePath: string;
     #debounceMs: number;
     #debounceTimer: NodeJS.Timeout | null = null;
+    #writeSeq: number = 0;
+    #writeChain: Promise<void> = Promise.resolve();
     #data: T = {} as T;
 
     constructor(dataDir: string, filePath: string, debounceMs: number = 500) {
@@ -80,15 +82,37 @@ class BaseJsonFileStore<T extends Record<string, any> = Record<string, any>> {
         return JSON.stringify(data, null, 2);
     }
 
+    #nextTempPath(): { seq: number; tempFilePath: string } {
+        const seq = ++this.#writeSeq;
+        return { seq, tempFilePath: `${this.#filePath}.tmp.${process.pid}.${Date.now()}.${seq}` };
+    }
+
     /**
-     * Schedule a debounced save to disk.
+     * Schedule a debounced non-blocking save to disk.
      */
     save(): void {
         if (this.#debounceTimer) {
             clearTimeout(this.#debounceTimer);
         }
         this.#debounceTimer = setTimeout(() => {
-            this.flush();
+            this.#debounceTimer = null;
+            const { seq, tempFilePath } = this.#nextTempPath();
+            const serialized = this._serializeData(this.#data);
+            this.#writeChain = this.#writeChain.then(async () => {
+                if (seq < this.#writeSeq) return;
+                try {
+                    await fs.promises.mkdir(this.#dataDir, { recursive: true });
+                    await fs.promises.writeFile(tempFilePath, serialized, 'utf8');
+                    if (seq < this.#writeSeq) {
+                        await fs.promises.unlink(tempFilePath).catch(() => {});
+                        return;
+                    }
+                    await fs.promises.rename(tempFilePath, this.#filePath);
+                } catch (err: any) {
+                    console.error(`[${this.constructor.name}] Failed to save file:`, err.message);
+                    await fs.promises.unlink(tempFilePath).catch(() => {});
+                }
+            });
         }, this.#debounceMs);
     }
 
@@ -101,20 +125,15 @@ class BaseJsonFileStore<T extends Record<string, any> = Record<string, any>> {
             clearTimeout(this.#debounceTimer);
             this.#debounceTimer = null;
         }
-        const tempFilePath = `${this.#filePath}.tmp.${Date.now()}`;
+        const { tempFilePath } = this.#nextTempPath();
         try {
-            if (!fs.existsSync(this.#dataDir)) {
-                fs.mkdirSync(this.#dataDir, { recursive: true });
-            }
-            const serialized = this._serializeData(this.#data);
-            fs.writeFileSync(tempFilePath, serialized, 'utf8');
+            fs.mkdirSync(this.#dataDir, { recursive: true });
+            fs.writeFileSync(tempFilePath, this._serializeData(this.#data), 'utf8');
             fs.renameSync(tempFilePath, this.#filePath);
         } catch (err: any) {
             console.error(`[${this.constructor.name}] Failed to save file:`, err.message);
             try {
-                if (fs.existsSync(tempFilePath)) {
-                    fs.unlinkSync(tempFilePath);
-                }
+                fs.unlinkSync(tempFilePath);
             } catch {
                 // Ignore temp cleanup error
             }

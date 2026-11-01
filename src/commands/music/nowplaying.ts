@@ -1,5 +1,4 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
-import { getAverageColor } from 'fast-average-color-node';
 import MusicPresenter, { type NowPlayingCardParams } from '../../core/music/MusicPresenter';
 import type BotClient from '../../core/BotClient';
 import type { Command } from '../../types';
@@ -36,17 +35,9 @@ const command: Command = {
             const nonTtsSongs = queue.songs.filter((s: any) => !s.isTTS);
             const nextSong = nonTtsSongs.length > 1 ? nonTtsSongs[1] : undefined;
 
-            let accentColor: number | undefined;
-            if (currentSong.thumbnail) {
-                try {
-                    const colorData = await getAverageColor(currentSong.thumbnail);
-                    if (colorData && colorData.hex) {
-                        accentColor = parseInt(colorData.hex.slice(1), 16);
-                    }
-                } catch {
-                    // Ignore color extraction errors
-                }
-            }
+            const accentColor = currentSong.thumbnail
+                ? await MusicPresenter.computeAccentColor(currentSong.thumbnail)
+                : undefined;
 
             const progressBar =
                 currentSong.duration > 0

@@ -14,15 +14,14 @@ class LinkFixHandler extends BaseMessageHandler {
         if (!message.guild || !message.content) return false;
 
         try {
-            const settings = bot.settings.getLinkFixerSettings(message.guild.id);
-            const { fixedLinks, items } = await bot.linkFixer.process(message.content, settings);
+            const { fixedLinks, items } = await bot.linkFixer.process(message.content);
 
             if (fixedLinks.length === 0 || items.length === 0) return false;
 
             const containers = [];
 
             for (const item of items.slice(0, 5)) {
-                const og = await bot.linkFixer.fetchOGMetadata(item.fixedUrl);
+                const og = await bot.linkFixer.fetchLinkMetadata(item.fixedUrl);
 
                 // Validation: Only create card if valid content exists
                 const hasContent = og && (og.title || og.description || og.image || og.video);
@@ -46,18 +45,7 @@ class LinkFixHandler extends BaseMessageHandler {
                     allowedMentions: { parse: [] }
                 };
 
-                const sentMessage = await message.reply(payload).catch(() => null);
-
-                if (sentMessage) {
-                    bot.linkFixer.trackFixedMessage(sentMessage.id, {
-                        authorId: message.author.id,
-                        guildId: message.guild.id,
-                        channelId: message.channel.id,
-                        originalContent: message.content,
-                        fixedLinks,
-                        items
-                    });
-                }
+                await message.reply(payload).catch(() => null);
                 return true;
             } else {
                 console.log('[LinkFixHandler] No valid metadata content found for links in message, ignoring.');

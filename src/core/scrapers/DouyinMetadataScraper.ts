@@ -58,7 +58,7 @@ class DouyinMetadataScraper extends BaseMetadataScraper {
         }).catch(() => null);
 
         if (!redirectRes || !redirectRes.ok) return null;
-        return await redirectRes.text();
+        return await this.readBoundedHtml(redirectRes, 512 * 1024);
     }
 
     #extractRouterData(html: string): any {
