@@ -3,14 +3,13 @@
  */
 
 import { Events, Message } from 'discord.js';
-import LinkFixHandler from '../handlers/LinkFixHandler';
 import TTSHandler from '../handlers/TTSHandler';
 import AIStreamHandler from '../handlers/AIStreamHandler';
 import MessagePipeline from '../pipeline/MessagePipeline';
 import type BotClient from '../core/BotClient';
 import type { BotEvent } from '../types';
 
-const pipeline = new MessagePipeline([new LinkFixHandler(), new TTSHandler(), new AIStreamHandler()]);
+const pipeline = new MessagePipeline([new TTSHandler(), new AIStreamHandler()]);
 
 const messageCreateEvent: BotEvent = {
     name: Events.MessageCreate,

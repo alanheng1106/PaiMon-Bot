@@ -8,7 +8,6 @@ import type ServiceContainer from './ServiceContainer';
 import type { Command } from '../types';
 import type AIClient from './AIClient';
 import type MusicManager from './MusicManager';
-import type LinkFixer from './LinkFixer';
 import type ComponentRouter from './components/ComponentRouter';
 import type CooldownManager from './CooldownManager';
 import type GuildSettings from './GuildSettings';
@@ -56,9 +55,6 @@ class BotClient extends Client {
     }
     get settings(): GuildSettings {
         return this.container.get('settings');
-    }
-    get linkFixer(): LinkFixer {
-        return this.container.get('linkFixer');
     }
     get components(): ComponentRouter {
         return this.container.get('components');

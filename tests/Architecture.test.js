@@ -46,7 +46,6 @@ describe('ServiceContainer & AppContainerBuilder (Dependency Injection)', () => 
         assert.ok(container.has('lavalinkService'));
         assert.ok(container.has('settings'));
         assert.ok(container.has('cooldowns'));
-        assert.ok(container.has('linkFixer'));
         assert.ok(container.has('components'));
 
         // Verify that factory methods resolve successfully without ReferenceError

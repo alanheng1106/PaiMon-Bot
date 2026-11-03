@@ -11,7 +11,6 @@ import type AIClient from '../core/AIClient';
 import type LavalinkService from '../core/music/LavalinkService';
 import type GuildSettings from '../core/GuildSettings';
 import type CooldownManager from '../core/CooldownManager';
-import type LinkFixer from '../core/LinkFixer';
 import type ComponentRouter from '../core/components/ComponentRouter';
 
 import type ModelRegistry from '../core/ai/ModelRegistry';
@@ -27,7 +26,6 @@ export interface ServiceMap {
     lavalinkService: LavalinkService;
     settings: GuildSettings;
     cooldowns: CooldownManager;
-    linkFixer: LinkFixer;
     components: ComponentRouter;
     modelRegistry: ModelRegistry;
     llmProvider: ILLMProvider;

@@ -8,8 +8,6 @@ import ModelRegistry from '../ai/ModelRegistry';
 import AIChatSessionManager from '../ai/AIChatSessionManager';
 import CooldownManager from '../CooldownManager';
 import GuildSettings from '../GuildSettings';
-import LinkFixer from '../LinkFixer';
-import DomainRegistry from '../linkfixer/DomainRegistry';
 import FilePromptProvider from '../ai/FilePromptProvider';
 import ToolRegistry from '../tools/ToolRegistry';
 import GetCurrentTimeTool from '../tools/GetCurrentTimeTool';
@@ -64,8 +62,6 @@ class AppContainerBuilder {
     static buildDefaultContainer(client: Client | null = null): ServiceContainer {
         const container = new ServiceContainer();
 
-        container.register('domainRegistry', () => new DomainRegistry());
-        container.register('linkFixer', (c: ServiceContainer) => new LinkFixer(c.get('domainRegistry')));
         container.register('promptProvider', () => new FilePromptProvider());
         container.register('imageService', () => new ImageSynthesisService());
         container.register('largeFileCache', () => new LargeFileCache());

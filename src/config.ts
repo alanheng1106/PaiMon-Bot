@@ -33,11 +33,6 @@ export const Emojis = {
     MeowAI: '<:meowai:1553012543189024799>'
 } as const;
 
-export const LinkFixer = {
-    DefaultCardColor: 0x00aeec, // Default brand color for embed cards
-    MaxDescriptionLength: 2000 // Discord maximum description character limit
-} as const;
-
 export const AI = {
     MaxChannels: 100, // Maximum concurrent conversation channels in LRU cache
     ChatTTL: 1000 * 60 * 60 * 2, // 2 hours — clear history after inactivity
@@ -110,7 +105,6 @@ export const Guild = {
 const config = {
     Colors,
     Emojis,
-    LinkFixer,
     AI,
     Music,
     Guild
